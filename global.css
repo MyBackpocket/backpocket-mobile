@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 
+ * Backpocket Mobile Global Styles
+ * CSS Variables for NativeWind theming
+ */
+
+:root {
+	/* Light mode (default) */
+	--background: #f5f0e6;
+	--foreground: #3a3a3a;
+	--card: #f7f4ed;
+	--card-foreground: #3a3a3a;
+	--popover: #f7f4ed;
+	--popover-foreground: #3a3a3a;
+	--primary: #c96d3b;
+	--primary-foreground: #faf9f7;
+	--secondary: #e8eef1;
+	--secondary-foreground: #3d5a6c;
+	--muted: #e8dfd0;
+	--muted-foreground: #5c7080;
+	--accent: #e5edf1;
+	--accent-foreground: #3d5a6c;
+	--destructive: #ef4444;
+	--destructive-foreground: #ffffff;
+	--border: #d9d0c3;
+	--input: #d9d0c3;
+	--ring: #c96d3b;
+	--success: #9dc08b;
+	--warning: #e8b86d;
+	--info: #7fbfbf;
+}
+
+.dark {
+	/* Dark mode */
+	--background: #141d22;
+	--foreground: #eae5dc;
+	--card: #1a252c;
+	--card-foreground: #eae5dc;
+	--popover: #1a252c;
+	--popover-foreground: #eae5dc;
+	--primary: #e8b86d;
+	--primary-foreground: #141d22;
+	--secondary: #243038;
+	--secondary-foreground: #ddd7cc;
+	--muted: #20292f;
+	--muted-foreground: #7a8b96;
+	--accent: #283640;
+	--accent-foreground: #ebe6dd;
+	--destructive: #dc2626;
+	--destructive-foreground: #ffffff;
+	--border: #283640;
+	--input: #283640;
+	--ring: #e8b86d;
+	--success: #9dc08b;
+	--warning: #e8b86d;
+	--info: #7fbfbf;
+}

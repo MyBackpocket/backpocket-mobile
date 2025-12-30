@@ -1,0 +1,8 @@
+# Cursor Rules for Backpocket Mobile
+
+## Package Manager
+
+- This project uses **bun** exclusively. NEVER use npm, pnpm, or yarn.
+- Always use `bun add` instead of `npm install`, `pnpm add`, or `yarn add`.
+- Always use `bun remove` instead of `npm uninstall`, `pnpm remove`, or `yarn remove`.
+- Always use `bun run` for scripts, or just `bun <script>` (e.g., `bun dev`, `bun build`).
