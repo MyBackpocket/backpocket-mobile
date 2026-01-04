@@ -7,6 +7,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAPIClient } from "./hooks";
 import type {
 	DashboardData,
+	DomainMapping,
+	DomainStatusResponse,
+	SlugAvailability,
 	Space,
 	SpaceSettingsInput,
 	StatsResponse,
@@ -18,6 +21,9 @@ export const spaceKeys = {
 	mySpace: () => [...spaceKeys.all, "mySpace"] as const,
 	dashboard: () => [...spaceKeys.all, "dashboard"] as const,
 	stats: () => [...spaceKeys.all, "stats"] as const,
+	domains: () => [...spaceKeys.all, "domains"] as const,
+	domainStatus: (domainId: string) =>
+		[...spaceKeys.all, "domainStatus", domainId] as const,
 };
 
 /**
@@ -98,9 +104,81 @@ export function useCheckSlugAvailability() {
 
 	return useMutation({
 		mutationFn: (slug: string) =>
-			client.mutate<{ slug: string }, { available: boolean; message?: string }>(
+			client.mutate<{ slug: string }, SlugAvailability>(
 				"space.checkSlugAvailability",
 				{ slug },
 			),
+	});
+}
+
+// === Domain Hooks ===
+
+/**
+ * Hook to list all custom domains for the user's space
+ */
+export function useListDomains() {
+	const client = useAPIClient();
+
+	return useQuery({
+		queryKey: spaceKeys.domains(),
+		queryFn: () => client.query<void, DomainMapping[]>("space.listDomains"),
+	});
+}
+
+/**
+ * Hook to get detailed status for a specific domain
+ */
+export function useDomainStatus(domainId: string) {
+	const client = useAPIClient();
+
+	return useQuery({
+		queryKey: spaceKeys.domainStatus(domainId),
+		queryFn: () =>
+			client.query<{ domainId: string }, DomainStatusResponse>(
+				"space.getDomainStatus",
+				{ domainId },
+			),
+		enabled: !!domainId,
+	});
+}
+
+/**
+ * Hook to remove a custom domain
+ */
+export function useRemoveDomain() {
+	const client = useAPIClient();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (domainId: string) =>
+			client.mutate<{ domainId: string }, { success: boolean }>(
+				"space.removeDomain",
+				{ domainId },
+			),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: spaceKeys.domains() });
+		},
+	});
+}
+
+/**
+ * Hook to verify a domain (trigger verification check)
+ */
+export function useVerifyDomain() {
+	const client = useAPIClient();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (domainId: string) =>
+			client.mutate<{ domainId: string }, { verified: boolean; status: string }>(
+				"space.verifyDomain",
+				{ domainId },
+			),
+		onSuccess: (_, domainId) => {
+			queryClient.invalidateQueries({ queryKey: spaceKeys.domains() });
+			queryClient.invalidateQueries({
+				queryKey: spaceKeys.domainStatus(domainId),
+			});
+		},
 	});
 }
