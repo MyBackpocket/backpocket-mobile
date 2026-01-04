@@ -6,3 +6,27 @@
 - Always use `bun add` instead of `npm install`, `pnpm add`, or `yarn add`.
 - Always use `bun remove` instead of `npm uninstall`, `pnpm remove`, or `yarn remove`.
 - Always use `bun run` for scripts, or just `bun <script>` (e.g., `bun dev`, `bun build`).
+
+## Destructive Actions
+
+- **Always add confirmation modals** for deletion and archive operations.
+- Use `Alert.alert()` with Cancel and a destructive-styled action button.
+- Include haptic feedback (`Haptics.notificationAsync` with `Warning` type) when the destructive action is confirmed.
+- Example pattern:
+  ```typescript
+  Alert.alert(
+    "Delete Item",
+    "Are you sure? This cannot be undone.",
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          // perform deletion
+        },
+      },
+    ]
+  );
+  ```
