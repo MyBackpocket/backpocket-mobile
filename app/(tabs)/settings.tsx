@@ -13,6 +13,7 @@ import {
 } from "lucide-react-native";
 import {
 	Alert,
+	Image,
 	ScrollView,
 	StyleSheet,
 	Text,
@@ -24,10 +25,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { brandColors } from "@/constants/theme";
 import { useThemeColors } from "@/hooks/use-theme-color";
 import { CLERK_PUBLISHABLE_KEY } from "@/lib/constants";
+import { useSettings } from "@/lib/settings";
 
 export default function SettingsScreen() {
 	const colors = useThemeColors();
 	const router = useRouter();
+	const { settings } = useSettings();
 
 	// Clerk hooks (only if configured)
 	// biome-ignore lint/correctness/useHookAtTopLevel: Conditional hook based on Clerk config is intentional
@@ -35,6 +38,14 @@ export default function SettingsScreen() {
 	// biome-ignore lint/correctness/useHookAtTopLevel: Conditional hook based on Clerk config is intentional
 	const userHook = CLERK_PUBLISHABLE_KEY ? useUser() : null;
 	const user = userHook?.user;
+
+	// Get display label for current theme
+	const themeLabel =
+		settings.theme === "system"
+			? "System"
+			: settings.theme === "light"
+				? "Light"
+				: "Dark";
 
 	const handleSignOut = async () => {
 		if (!auth?.signOut) return;
@@ -60,18 +71,25 @@ export default function SettingsScreen() {
 			{/* Profile Section */}
 			<Card style={styles.section}>
 				<CardContent style={styles.profileContent}>
-					<View
-						style={[
-							styles.avatar,
-							{ backgroundColor: brandColors.denim.DEFAULT },
-						]}
-					>
-						<Text style={styles.avatarText}>
-							{user?.firstName?.[0] ||
-								user?.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() ||
-								"?"}
-						</Text>
-					</View>
+					{user?.imageUrl ? (
+						<Image
+							source={{ uri: user.imageUrl }}
+							style={styles.profileImage}
+						/>
+					) : (
+						<View
+							style={[
+								styles.avatar,
+								{ backgroundColor: brandColors.denim.DEFAULT },
+							]}
+						>
+							<Text style={styles.avatarText}>
+								{user?.firstName?.[0] ||
+									user?.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() ||
+									"?"}
+							</Text>
+						</View>
+					)}
 					<View style={styles.profileInfo}>
 						<Text style={[styles.profileName, { color: colors.text }]}>
 							{user?.firstName && user?.lastName
@@ -95,14 +113,14 @@ export default function SettingsScreen() {
 				<SettingsRow
 					icon={User}
 					label="Profile"
-					onPress={() => {}}
+					onPress={() => router.push("/settings/profile")}
 					colors={colors}
 				/>
 				<SettingsRow
 					icon={Globe}
 					label="Public Space"
 					subtitle="Manage your public page"
-					onPress={() => {}}
+					onPress={() => router.push("/settings/public-space")}
 					colors={colors}
 				/>
 			</Card>
@@ -114,14 +132,14 @@ export default function SettingsScreen() {
 				<SettingsRow
 					icon={Moon}
 					label="Appearance"
-					subtitle="System"
-					onPress={() => {}}
+					subtitle={themeLabel}
+					onPress={() => router.push("/settings/appearance")}
 					colors={colors}
 				/>
 				<SettingsRow
 					icon={Bell}
 					label="Notifications"
-					onPress={() => {}}
+					onPress={() => router.push("/settings/notifications")}
 					colors={colors}
 				/>
 			</Card>
@@ -196,7 +214,7 @@ function SettingsRow({
 }: SettingsRowProps) {
 	return (
 		<TouchableOpacity
-			style={styles.settingsRow}
+			style={[styles.settingsRow, { borderBottomColor: colors.border }]}
 			onPress={onPress}
 			activeOpacity={0.7}
 		>
@@ -237,8 +255,15 @@ const styles = StyleSheet.create({
 	profileContent: {
 		flexDirection: "row",
 		alignItems: "center",
-		padding: 16,
-		gap: 16,
+		paddingVertical: 16,
+		paddingHorizontal: 16,
+		paddingTop: 16,
+		gap: 14,
+	},
+	profileImage: {
+		width: 56,
+		height: 56,
+		borderRadius: 28,
 	},
 	avatar: {
 		width: 56,
@@ -281,7 +306,6 @@ const styles = StyleSheet.create({
 		padding: 14,
 		gap: 12,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "rgba(0,0,0,0.1)",
 	},
 	settingsIcon: {
 		width: 36,

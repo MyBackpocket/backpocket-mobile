@@ -31,6 +31,8 @@ import {
 	View,
 } from "react-native";
 
+const HEADER_BUTTON_SIZE = 36;
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { brandColors, radii } from "@/constants/theme";
@@ -63,13 +65,37 @@ export default function SaveDetailScreen() {
 		});
 	}, [save, toggleFavorite]);
 
-	const handleToggleArchive = useCallback(async () => {
+	const [isArchiving, setIsArchiving] = useState(false);
+
+	const handleToggleArchive = useCallback(() => {
 		if (!save) return;
-		Haptics.selectionAsync();
-		await toggleArchive.mutateAsync({
-			saveId: save.id,
-			value: !save.isArchived,
-		});
+
+		const action = save.isArchived ? "Unarchive" : "Archive";
+		const message = save.isArchived
+			? "This will move the save back to your active saves."
+			: "This will archive the save. You can unarchive it later.";
+
+		Alert.alert(`${action} Save`, message, [
+			{ text: "Cancel", style: "cancel" },
+			{
+				text: action,
+				onPress: async () => {
+					setIsArchiving(true);
+					try {
+						await toggleArchive.mutateAsync({
+							saveId: save.id,
+							value: !save.isArchived,
+						});
+						Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+					} catch {
+						Alert.alert("Error", `Failed to ${action.toLowerCase()} save`);
+						Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+					} finally {
+						setIsArchiving(false);
+					}
+				},
+			},
+		]);
 	}, [save, toggleArchive]);
 
 	const handleOpenUrl = useCallback(() => {
@@ -128,8 +154,11 @@ export default function SaveDetailScreen() {
 					options={{
 						title: "Loading...",
 						headerLeft: () => (
-							<TouchableOpacity onPress={() => router.back()}>
-								<ChevronLeft size={28} color={colors.text} />
+							<TouchableOpacity
+								onPress={() => router.back()}
+								style={styles.headerButton}
+							>
+								<ChevronLeft size={24} color={colors.text} />
 							</TouchableOpacity>
 						),
 					}}
@@ -154,8 +183,11 @@ export default function SaveDetailScreen() {
 					options={{
 						title: "Error",
 						headerLeft: () => (
-							<TouchableOpacity onPress={() => router.back()}>
-								<ChevronLeft size={28} color={colors.text} />
+							<TouchableOpacity
+								onPress={() => router.back()}
+								style={styles.headerButton}
+							>
+								<ChevronLeft size={24} color={colors.text} />
 							</TouchableOpacity>
 						),
 					}}
@@ -184,13 +216,19 @@ export default function SaveDetailScreen() {
 				options={{
 					title: save.siteName || new URL(save.url).hostname,
 					headerLeft: () => (
-						<TouchableOpacity onPress={() => router.back()}>
-							<ChevronLeft size={28} color={colors.text} />
+						<TouchableOpacity
+							onPress={() => router.back()}
+							style={styles.headerButton}
+						>
+							<ChevronLeft size={24} color={colors.text} />
 						</TouchableOpacity>
 					),
 					headerRight: () => (
-						<TouchableOpacity onPress={handleOpenUrl}>
-							<ExternalLink size={22} color={colors.text} />
+						<TouchableOpacity
+							onPress={handleOpenUrl}
+							style={styles.headerButton}
+						>
+							<ExternalLink size={20} color={colors.text} />
 						</TouchableOpacity>
 					),
 				}}
@@ -253,23 +291,6 @@ export default function SaveDetailScreen() {
 						/>
 						<Text style={[styles.quickActionText, { color: colors.text }]}>
 							{save.isFavorite ? "Favorited" : "Favorite"}
-						</Text>
-					</TouchableOpacity>
-
-					<TouchableOpacity
-						style={[styles.quickAction, { backgroundColor: colors.card }]}
-						onPress={handleToggleArchive}
-					>
-						<Archive
-							size={24}
-							color={
-								save.isArchived
-									? brandColors.denim.DEFAULT
-									: colors.mutedForeground
-							}
-						/>
-						<Text style={[styles.quickActionText, { color: colors.text }]}>
-							{save.isArchived ? "Archived" : "Archive"}
 						</Text>
 					</TouchableOpacity>
 
@@ -414,13 +435,34 @@ export default function SaveDetailScreen() {
 					</Card>
 				)}
 
-				{/* Danger Zone */}
-				<View style={styles.dangerZone}>
+				{/* Actions Zone */}
+				<View style={styles.actionsZone}>
+					<Button
+						variant="outline"
+						onPress={handleToggleArchive}
+						loading={isArchiving}
+						style={styles.actionButton}
+					>
+						<Archive
+							size={18}
+							color={
+								save.isArchived
+									? brandColors.denim.DEFAULT
+									: colors.mutedForeground
+							}
+						/>
+						<Text
+							style={[styles.actionButtonText, { color: colors.text }]}
+						>
+							{save.isArchived ? "Unarchive Save" : "Archive Save"}
+						</Text>
+					</Button>
+
 					<Button
 						variant="destructive"
 						onPress={handleDelete}
 						loading={isDeleting}
-						style={styles.deleteButton}
+						style={styles.actionButton}
 					>
 						<Trash2 size={18} color="#FFFFFF" />
 						<Text style={styles.deleteButtonText}>Delete Save</Text>
@@ -438,6 +480,13 @@ const styles = StyleSheet.create({
 	centered: {
 		justifyContent: "center",
 		alignItems: "center",
+	},
+	headerButton: {
+		width: HEADER_BUTTON_SIZE,
+		height: HEADER_BUTTON_SIZE,
+		borderRadius: HEADER_BUTTON_SIZE / 2,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	content: {
 		paddingBottom: 40,
@@ -551,16 +600,22 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		fontFamily: "DMSans-Medium",
 	},
-	dangerZone: {
+	actionsZone: {
 		marginHorizontal: 16,
 		marginTop: 24,
 		paddingTop: 24,
 		borderTopWidth: 1,
-		borderTopColor: "#DC262620",
+		borderTopColor: "#88888820",
+		gap: 12,
 	},
-	deleteButton: {
+	actionButton: {
 		flexDirection: "row",
 		gap: 8,
+	},
+	actionButtonText: {
+		fontSize: 15,
+		fontFamily: "DMSans-Medium",
+		fontWeight: "500",
 	},
 	deleteButtonText: {
 		color: "#FFFFFF",

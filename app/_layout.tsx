@@ -22,6 +22,8 @@ import {
 } from "@expo-google-fonts/fraunces";
 
 import { Providers } from "@/components/providers";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 // Keep splash screen visible while loading fonts
 SplashScreen.preventAutoHideAsync();
@@ -31,6 +33,8 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
+	const colorScheme = useColorScheme();
+	const colors = Colors[colorScheme];
 	const [appIsReady, setAppIsReady] = useState(false);
 
 	const [fontsLoaded, fontError] = useFonts({
@@ -61,11 +65,18 @@ export default function RootLayout() {
 
 	return (
 		<Providers>
-			<Stack>
+			<Stack
+				screenOptions={{
+					contentStyle: {
+						backgroundColor: colors.background,
+					},
+				}}
+			>
 				<Stack.Screen name="(auth)" options={{ headerShown: false }} />
 				<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 				<Stack.Screen name="save/[id]" options={{ headerShown: true }} />
 				<Stack.Screen name="save/new" options={{ headerShown: true }} />
+				<Stack.Screen name="settings" options={{ headerShown: false }} />
 				<Stack.Screen
 					name="share"
 					options={{ headerShown: false, presentation: "modal" }}

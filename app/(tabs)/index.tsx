@@ -1,8 +1,18 @@
 import { useUser } from "@clerk/clerk-expo";
+import * as Haptics from "expo-haptics";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
-import { Bookmark, ExternalLink, Plus } from "lucide-react-native";
 import {
+	Bookmark,
+	ChevronRight,
+	ExternalLink,
+	FolderOpen,
+	Globe,
+	Heart,
+	Plus,
+} from "lucide-react-native";
+import {
+	Image,
 	RefreshControl,
 	ScrollView,
 	StyleSheet,
@@ -10,10 +20,9 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Logo } from "@/components/ui/logo";
-import { brandColors } from "@/constants/theme";
+import { brandColors, radii } from "@/constants/theme";
 import { useThemeColors } from "@/hooks/use-theme-color";
 import { useDashboard } from "@/lib/api/space";
 import type { Save } from "@/lib/api/types";
@@ -21,10 +30,12 @@ import type { Save } from "@/lib/api/types";
 export default function DashboardScreen() {
 	const colors = useThemeColors();
 	const router = useRouter();
+	const insets = useSafeAreaInsets();
 
 	// Always call useUser hook (React rules of hooks)
 	const { user } = useUser();
 	const userName = user?.firstName || "there";
+	const userImageUrl = user?.imageUrl;
 
 	// Fetch dashboard data
 	const {
@@ -41,7 +52,8 @@ export default function DashboardScreen() {
 	return (
 		<ScrollView
 			style={[styles.container, { backgroundColor: colors.background }]}
-			contentContainerStyle={styles.content}
+			contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}
+			showsVerticalScrollIndicator={false}
 			refreshControl={
 				<RefreshControl
 					refreshing={isRefetching}
@@ -52,7 +64,18 @@ export default function DashboardScreen() {
 		>
 			{/* Header */}
 			<View style={styles.header}>
-				<Logo size="md" showText={false} />
+				{userImageUrl ? (
+					<Image
+						source={{ uri: userImageUrl }}
+						style={styles.profileImage}
+					/>
+				) : (
+					<View style={[styles.profilePlaceholder, { backgroundColor: colors.muted }]}>
+						<Text style={[styles.profileInitial, { color: colors.text }]}>
+							{userName.charAt(0).toUpperCase()}
+						</Text>
+					</View>
+				)}
 				<View style={styles.greeting}>
 					<Text style={[styles.welcomeText, { color: colors.mutedForeground }]}>
 						Welcome back,
@@ -63,104 +86,134 @@ export default function DashboardScreen() {
 				</View>
 			</View>
 
-			{/* Stats Cards */}
-			<View style={styles.statsGrid}>
-				<StatCard
-					title="Total Saves"
-					value={isLoading ? "--" : String(stats?.totalSaves ?? 0)}
-					subtitle="saved links"
-					colors={colors}
-				/>
-				<StatCard
-					title="Favorites"
-					value={isLoading ? "--" : String(stats?.favoriteSaves ?? 0)}
-					subtitle="marked favorite"
-					colors={colors}
-				/>
-				<StatCard
-					title="Public"
-					value={isLoading ? "--" : String(stats?.publicSaves ?? 0)}
-					subtitle="publicly visible"
-					colors={colors}
-				/>
-				<StatCard
-					title="Collections"
-					value={isLoading ? "--" : String(stats?.totalCollections ?? 0)}
-					subtitle="organized groups"
-					colors={colors}
-				/>
+			{/* Stats Grid - 2x2 compact layout */}
+			<View style={styles.statsContainer}>
+				<View style={styles.statsRow}>
+					<StatCard
+						title="Saves"
+						value={isLoading ? "—" : String(stats?.totalSaves ?? 0)}
+						icon={Bookmark}
+						iconColor={brandColors.teal}
+						colors={colors}
+						onPress={() => {
+							Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+							router.push("/(tabs)/saves");
+						}}
+					/>
+					<StatCard
+						title="Favorites"
+						value={isLoading ? "—" : String(stats?.favoriteSaves ?? 0)}
+						icon={Heart}
+						iconColor={brandColors.rust.DEFAULT}
+						colors={colors}
+						onPress={() => {
+							Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+							router.push({ pathname: "/(tabs)/saves", params: { filter: "favorites" } });
+						}}
+					/>
+				</View>
+				<View style={styles.statsRow}>
+					<StatCard
+						title="Public"
+						value={isLoading ? "—" : String(stats?.publicSaves ?? 0)}
+						icon={Globe}
+						iconColor={brandColors.mint}
+						colors={colors}
+						onPress={() => {
+							Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+							router.push({ pathname: "/(tabs)/saves", params: { filter: "public" } });
+						}}
+					/>
+					<StatCard
+						title="Collections"
+						value={isLoading ? "—" : String(stats?.totalCollections ?? 0)}
+						icon={FolderOpen}
+						iconColor={brandColors.amber}
+						colors={colors}
+						onPress={() => {
+							Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+							router.push("/(tabs)/collections");
+						}}
+					/>
+				</View>
 			</View>
 
-			{/* Quick Actions */}
-			<View style={styles.quickActions}>
-				<Button
-					onPress={() => router.push("/save/new")}
-					style={styles.quickAddButton}
-				>
-					<Plus size={20} color="#FFFFFF" />
-					<Text style={styles.quickAddText}>Add Save</Text>
-				</Button>
-			</View>
+			{/* Quick Add Button */}
+			<Button
+				onPress={() => router.push("/save/new")}
+				size="lg"
+				style={styles.quickAddButton}
+			>
+				<Plus size={22} color="#FFFFFF" strokeWidth={2.5} />
+				<Text style={styles.quickAddText}>Add New Save</Text>
+			</Button>
 
-			{/* Recent Saves */}
-			<Card style={styles.recentCard}>
-				<CardHeader style={styles.recentHeader}>
-					<CardTitle>Recent Saves</CardTitle>
+			{/* Recent Saves Section */}
+			<View style={styles.sectionContainer}>
+				<View style={styles.sectionHeader}>
+					<Text style={[styles.sectionTitle, { color: colors.text }]}>
+						Recent Saves
+					</Text>
 					{recentSaves.length > 0 && (
-						<TouchableOpacity onPress={() => router.push("/(tabs)/saves")}>
-							<Text
-								style={[
-									styles.viewAllLink,
-									{ color: brandColors.rust.DEFAULT },
-								]}
-							>
+						<TouchableOpacity 
+							onPress={() => router.push("/(tabs)/saves")}
+							style={styles.viewAllButton}
+							activeOpacity={0.7}
+						>
+							<Text style={[styles.viewAllText, { color: colors.primary }]}>
 								View all
 							</Text>
+							<ChevronRight size={16} color={colors.primary} />
 						</TouchableOpacity>
 					)}
-				</CardHeader>
-				<CardContent>
+				</View>
+
+				<View style={[styles.recentCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
 					{isLoading && (
-						<Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-							Loading...
-						</Text>
+						<View style={styles.emptyContainer}>
+							<Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+								Loading...
+							</Text>
+						</View>
 					)}
 
 					{isError && (
-						<Text style={[styles.emptyText, { color: colors.destructive }]}>
-							Failed to load saves
-						</Text>
+						<View style={styles.emptyContainer}>
+							<Text style={[styles.emptyText, { color: colors.destructive }]}>
+								Failed to load saves
+							</Text>
+						</View>
 					)}
 
 					{!isLoading && !isError && recentSaves.length === 0 && (
-						<>
-							<Text
-								style={[styles.emptyText, { color: colors.mutedForeground }]}
-							>
-								Your recently saved links will appear here.
+						<View style={styles.emptyContainer}>
+							<View style={[styles.emptyIcon, { backgroundColor: colors.muted }]}>
+								<Bookmark size={28} color={colors.mutedForeground} />
+							</View>
+							<Text style={[styles.emptyTitle, { color: colors.text }]}>
+								No saves yet
 							</Text>
-							<Text
-								style={[styles.emptyHint, { color: colors.mutedForeground }]}
-							>
+							<Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
 								Share a link to Backpocket to get started!
 							</Text>
-						</>
+						</View>
 					)}
 
 					{!isLoading && recentSaves.length > 0 && (
 						<View style={styles.savesList}>
-							{recentSaves.slice(0, 5).map((save) => (
+							{recentSaves.slice(0, 5).map((save, index) => (
 								<SaveListItem
 									key={save.id}
 									save={save}
 									colors={colors}
+									isLast={index === Math.min(recentSaves.length, 5) - 1}
 									onPress={() => router.push(`/save/${save.id}`)}
 								/>
 							))}
 						</View>
 					)}
-				</CardContent>
-			</Card>
+				</View>
+			</View>
 		</ScrollView>
 	);
 }
@@ -168,45 +221,56 @@ export default function DashboardScreen() {
 interface StatCardProps {
 	title: string;
 	value: string;
-	subtitle: string;
+	icon: React.ComponentType<{ size: number; color: string; strokeWidth?: number }>;
+	iconColor: string;
 	colors: ReturnType<typeof useThemeColors>;
+	onPress?: () => void;
 }
 
-function StatCard({ title, value, subtitle, colors }: StatCardProps) {
+function StatCard({ title, value, icon: Icon, iconColor, colors, onPress }: StatCardProps) {
 	return (
-		<Card style={styles.statCard}>
-			<CardContent style={styles.statContent}>
+		<TouchableOpacity 
+			style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+			onPress={onPress}
+			activeOpacity={0.7}
+		>
+			<View style={[styles.statIconContainer, { backgroundColor: `${iconColor}20` }]}>
+				<Icon size={18} color={iconColor} strokeWidth={2} />
+			</View>
+			<View style={styles.statTextContainer}>
+				<Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
 				<Text style={[styles.statTitle, { color: colors.mutedForeground }]}>
 					{title}
 				</Text>
-				<Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
-				<Text style={[styles.statSubtitle, { color: colors.mutedForeground }]}>
-					{subtitle}
-				</Text>
-			</CardContent>
-		</Card>
+			</View>
+			<ChevronRight size={16} color={colors.mutedForeground} style={styles.statChevron} />
+		</TouchableOpacity>
 	);
 }
 
 interface SaveListItemProps {
 	save: Save;
 	colors: ReturnType<typeof useThemeColors>;
+	isLast?: boolean;
 	onPress: () => void;
 }
 
-function SaveListItem({ save, colors, onPress }: SaveListItemProps) {
+function SaveListItem({ save, colors, isLast, onPress }: SaveListItemProps) {
 	const handleOpenUrl = () => {
 		Linking.openURL(save.url);
 	};
 
 	return (
 		<TouchableOpacity
-			style={[styles.saveItem, { borderBottomColor: colors.border }]}
+			style={[
+				styles.saveItem, 
+				!isLast && { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth }
+			]}
 			onPress={onPress}
-			activeOpacity={0.7}
+			activeOpacity={0.6}
 		>
 			<View style={[styles.saveIcon, { backgroundColor: colors.muted }]}>
-				<Bookmark size={16} color={colors.mutedForeground} />
+				<Bookmark size={18} color={colors.mutedForeground} />
 			</View>
 			<View style={styles.saveContent}>
 				<Text
@@ -222,8 +286,8 @@ function SaveListItem({ save, colors, onPress }: SaveListItemProps) {
 					{save.siteName || new URL(save.url).hostname}
 				</Text>
 			</View>
-			<TouchableOpacity onPress={handleOpenUrl} style={styles.saveAction}>
-				<ExternalLink size={18} color={colors.mutedForeground} />
+			<TouchableOpacity onPress={handleOpenUrl} style={styles.saveAction} activeOpacity={0.6}>
+				<ExternalLink size={20} color={colors.mutedForeground} />
 			</TouchableOpacity>
 		</TouchableOpacity>
 	);
@@ -234,110 +298,169 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	content: {
-		padding: 16,
+		padding: 20,
+		paddingTop: 12,
 	},
 	header: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 12,
-		marginBottom: 24,
+		gap: 16,
+		marginBottom: 32,
 		paddingTop: 8,
+	},
+	profileImage: {
+		width: 52,
+		height: 52,
+		borderRadius: 26,
+	},
+	profilePlaceholder: {
+		width: 52,
+		height: 52,
+		borderRadius: 26,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	profileInitial: {
+		fontSize: 22,
+		fontFamily: "DMSans-Bold",
+		fontWeight: "700",
 	},
 	greeting: {
 		flex: 1,
 	},
 	welcomeText: {
-		fontSize: 14,
+		fontSize: 15,
 		fontFamily: "DMSans",
+		marginBottom: 2,
 	},
 	userName: {
+		fontSize: 26,
+		fontFamily: "DMSans-Bold",
+		fontWeight: "700",
+		letterSpacing: -0.5,
+	},
+	statsContainer: {
+		gap: 10,
+		marginBottom: 24,
+	},
+	statsRow: {
+		flexDirection: "row",
+		gap: 10,
+	},
+	statCard: {
+		flex: 1,
+		flexDirection: "row",
+		alignItems: "center",
+		padding: 14,
+		borderRadius: radii.lg,
+		borderWidth: 1,
+	},
+	statIconContainer: {
+		width: 36,
+		height: 36,
+		borderRadius: radii.md,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	statTextContainer: {
+		flex: 1,
+		marginLeft: 12,
+	},
+	statValue: {
+		fontSize: 22,
+		fontFamily: "DMSans-Bold",
+		fontWeight: "700",
+		letterSpacing: -0.5,
+		lineHeight: 26,
+	},
+	statTitle: {
+		fontSize: 12,
+		fontFamily: "DMSans-Medium",
+		letterSpacing: 0.1,
+		marginTop: -2,
+	},
+	statChevron: {
+		opacity: 0.5,
+	},
+	quickAddButton: {
+		flexDirection: "row",
+		gap: 10,
+		marginBottom: 32,
+		borderRadius: radii.xl,
+	},
+	quickAddText: {
+		color: "#FFFFFF",
+		fontSize: 16,
+		fontFamily: "DMSans-Bold",
+		fontWeight: "600",
+	},
+	sectionContainer: {
+		marginBottom: 16,
+	},
+	sectionHeader: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		marginBottom: 14,
+	},
+	sectionTitle: {
 		fontSize: 20,
 		fontFamily: "DMSans-Bold",
 		fontWeight: "700",
 	},
-	statsGrid: {
+	viewAllButton: {
 		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 12,
-		marginBottom: 20,
-	},
-	statCard: {
-		width: "48%",
-		flexGrow: 1,
-		minWidth: 150,
-	},
-	statContent: {
-		padding: 16,
 		alignItems: "center",
+		gap: 2,
 	},
-	statTitle: {
-		fontSize: 11,
-		fontFamily: "DMSans-Medium",
-		textTransform: "uppercase",
-		letterSpacing: 0.5,
-	},
-	statValue: {
-		fontSize: 28,
-		fontFamily: "DMSans-Bold",
-		fontWeight: "700",
-		marginVertical: 4,
-	},
-	statSubtitle: {
-		fontSize: 11,
-		fontFamily: "DMSans",
-	},
-	quickActions: {
-		marginBottom: 20,
-	},
-	quickAddButton: {
-		flexDirection: "row",
-		gap: 8,
-	},
-	quickAddText: {
-		color: "#FFFFFF",
-		fontSize: 15,
+	viewAllText: {
+		fontSize: 14,
 		fontFamily: "DMSans-Medium",
 		fontWeight: "500",
 	},
 	recentCard: {
-		marginBottom: 16,
+		borderRadius: radii.xl,
+		borderWidth: 1,
+		overflow: "hidden",
 	},
-	recentHeader: {
-		flexDirection: "row",
-		justifyContent: "space-between",
+	emptyContainer: {
+		padding: 32,
 		alignItems: "center",
 	},
-	viewAllLink: {
-		fontSize: 14,
-		fontFamily: "DMSans-Medium",
-		fontWeight: "500",
+	emptyIcon: {
+		width: 64,
+		height: 64,
+		borderRadius: radii.lg,
+		alignItems: "center",
+		justifyContent: "center",
+		marginBottom: 16,
+	},
+	emptyTitle: {
+		fontSize: 17,
+		fontFamily: "DMSans-Bold",
+		fontWeight: "600",
+		marginBottom: 6,
 	},
 	emptyText: {
 		fontSize: 15,
 		fontFamily: "DMSans",
 		textAlign: "center",
-		marginBottom: 8,
-	},
-	emptyHint: {
-		fontSize: 13,
-		fontFamily: "DMSans",
-		textAlign: "center",
-		fontStyle: "italic",
+		lineHeight: 22,
 	},
 	savesList: {
-		gap: 0,
+		paddingVertical: 4,
 	},
 	saveItem: {
 		flexDirection: "row",
 		alignItems: "center",
-		paddingVertical: 12,
-		gap: 12,
-		borderBottomWidth: StyleSheet.hairlineWidth,
+		paddingVertical: 14,
+		paddingHorizontal: 16,
+		gap: 14,
 	},
 	saveIcon: {
-		width: 36,
-		height: 36,
-		borderRadius: 8,
+		width: 44,
+		height: 44,
+		borderRadius: radii.md,
 		alignItems: "center",
 		justifyContent: "center",
 	},
@@ -346,16 +469,17 @@ const styles = StyleSheet.create({
 		minWidth: 0,
 	},
 	saveTitle: {
-		fontSize: 15,
+		fontSize: 16,
 		fontFamily: "DMSans-Medium",
 		fontWeight: "500",
-		marginBottom: 2,
+		marginBottom: 3,
 	},
 	saveUrl: {
-		fontSize: 13,
+		fontSize: 14,
 		fontFamily: "DMSans",
 	},
 	saveAction: {
-		padding: 8,
+		padding: 10,
+		marginRight: -6,
 	},
 });

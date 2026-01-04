@@ -1,14 +1,15 @@
 /**
  * Hook to get a specific color value from the current theme
+ * Uses ThemeProvider context which respects user's theme preference
  */
 
 import { Colors } from "@/constants/theme";
-import { useColorScheme } from "./use-color-scheme";
+import { useTheme } from "@/lib/theme/provider";
 
 type ColorKey = keyof typeof Colors.light;
 
 export function useThemeColor(colorKey: ColorKey): string {
-	const colorScheme = useColorScheme();
+	const { colorScheme } = useTheme();
 	return Colors[colorScheme][colorKey];
 }
 
@@ -16,6 +17,6 @@ export function useThemeColor(colorKey: ColorKey): string {
  * Get all colors for current theme
  */
 export function useThemeColors() {
-	const colorScheme = useColorScheme();
-	return Colors[colorScheme];
+	const { colors } = useTheme();
+	return colors;
 }

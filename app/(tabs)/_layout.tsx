@@ -3,14 +3,15 @@ import { Redirect, Tabs } from "expo-router";
 import {
 	Bookmark,
 	FolderOpen,
-	LayoutDashboard,
+	LayoutGrid,
 	Settings,
 	Tags,
 } from "lucide-react-native";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Platform, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HapticTab } from "@/components/haptic-tab";
-import { brandColors, Colors, type ColorsTheme } from "@/constants/theme";
+import { Colors, type ColorsTheme } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { CLERK_PUBLISHABLE_KEY } from "@/lib/constants";
 
@@ -56,27 +57,63 @@ interface TabsNavigatorProps {
 }
 
 function TabsNavigator({ colors }: TabsNavigatorProps) {
+	const insets = useSafeAreaInsets();
+	
 	return (
 		<Tabs
+			sceneContainerStyle={{
+				backgroundColor: colors.background,
+			}}
 			screenOptions={{
 				tabBarActiveTintColor: colors.tint,
 				tabBarInactiveTintColor: colors.tabIconDefault,
 				tabBarStyle: {
 					backgroundColor: colors.card,
-					borderTopColor: colors.border,
+					borderTopWidth: 0,
+					height: 64 + insets.bottom,
+					paddingTop: 8,
+					paddingBottom: insets.bottom + 8,
+					paddingHorizontal: 8,
+					// Subtle top shadow instead of border
+					...Platform.select({
+						ios: {
+							shadowColor: "#000",
+							shadowOffset: { width: 0, height: -2 },
+							shadowOpacity: 0.06,
+							shadowRadius: 8,
+						},
+						android: {
+							elevation: 8,
+						},
+					}),
 				},
 				headerStyle: {
-					backgroundColor: colors.card,
+					backgroundColor: colors.background,
+					borderBottomWidth: 0,
+					...Platform.select({
+						ios: {
+							shadowColor: "transparent",
+							shadowOpacity: 0,
+						},
+						android: {
+							elevation: 0,
+						},
+					}),
 				},
 				headerTintColor: colors.text,
 				headerTitleStyle: {
 					fontFamily: "DMSans-Bold",
 					fontWeight: "600",
+					fontSize: 18,
 				},
 				tabBarButton: HapticTab,
 				tabBarLabelStyle: {
 					fontFamily: "DMSans-Medium",
 					fontSize: 11,
+					marginTop: 2,
+				},
+				tabBarIconStyle: {
+					marginBottom: -2,
 				},
 			}}
 		>
@@ -85,10 +122,11 @@ function TabsNavigator({ colors }: TabsNavigatorProps) {
 				options={{
 					title: "Dashboard",
 					tabBarIcon: ({ color, focused }) => (
-						<LayoutDashboard
-							size={24}
-							color={focused ? brandColors.rust.DEFAULT : color}
-							strokeWidth={focused ? 2.5 : 2}
+						<LayoutGrid
+							size={22}
+							color={focused ? colors.tint : color}
+							strokeWidth={focused ? 2.5 : 1.75}
+							fill={focused ? colors.tint : "transparent"}
 						/>
 					),
 				}}
@@ -99,9 +137,10 @@ function TabsNavigator({ colors }: TabsNavigatorProps) {
 					title: "Saves",
 					tabBarIcon: ({ color, focused }) => (
 						<Bookmark
-							size={24}
-							color={focused ? brandColors.rust.DEFAULT : color}
-							strokeWidth={focused ? 2.5 : 2}
+							size={22}
+							color={focused ? colors.tint : color}
+							strokeWidth={focused ? 2.5 : 1.75}
+							fill={focused ? colors.tint : "transparent"}
 						/>
 					),
 				}}
@@ -112,9 +151,10 @@ function TabsNavigator({ colors }: TabsNavigatorProps) {
 					title: "Collections",
 					tabBarIcon: ({ color, focused }) => (
 						<FolderOpen
-							size={24}
-							color={focused ? brandColors.rust.DEFAULT : color}
-							strokeWidth={focused ? 2.5 : 2}
+							size={22}
+							color={focused ? colors.tint : color}
+							strokeWidth={focused ? 2.5 : 1.75}
+							fill={focused ? colors.tint : "transparent"}
 						/>
 					),
 				}}
@@ -125,9 +165,9 @@ function TabsNavigator({ colors }: TabsNavigatorProps) {
 					title: "Tags",
 					tabBarIcon: ({ color, focused }) => (
 						<Tags
-							size={24}
-							color={focused ? brandColors.rust.DEFAULT : color}
-							strokeWidth={focused ? 2.5 : 2}
+							size={22}
+							color={focused ? colors.tint : color}
+							strokeWidth={focused ? 2.5 : 1.75}
 						/>
 					),
 				}}
@@ -138,9 +178,9 @@ function TabsNavigator({ colors }: TabsNavigatorProps) {
 					title: "Settings",
 					tabBarIcon: ({ color, focused }) => (
 						<Settings
-							size={24}
-							color={focused ? brandColors.rust.DEFAULT : color}
-							strokeWidth={focused ? 2.5 : 2}
+							size={22}
+							color={focused ? colors.tint : color}
+							strokeWidth={focused ? 2.5 : 1.75}
 						/>
 					),
 				}}

@@ -1,14 +1,15 @@
 import * as Haptics from "expo-haptics";
 import * as Linking from "expo-linking";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
 	Archive,
 	Bookmark,
 	ExternalLink,
 	Heart,
 	Plus,
+	X,
 } from "lucide-react-native";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import {
 	ActivityIndicator,
 	FlatList,
@@ -29,11 +30,33 @@ import {
 	useToggleArchive,
 	useToggleFavorite,
 } from "@/lib/api/saves";
-import type { Save } from "@/lib/api/types";
+import type { ListSavesInput, Save } from "@/lib/api/types";
+
+type FilterType = "all" | "favorites" | "public";
+
+const filterLabels: Record<FilterType, string> = {
+	all: "All Saves",
+	favorites: "Favorites",
+	public: "Public",
+};
 
 export default function SavesScreen() {
 	const colors = useThemeColors();
 	const router = useRouter();
+	const { filter } = useLocalSearchParams<{ filter?: FilterType }>();
+	
+	const activeFilter: FilterType = filter || "all";
+	
+	// Build query params based on filter
+	const queryParams = useMemo((): ListSavesInput => {
+		const params: ListSavesInput = { limit: 20 };
+		if (activeFilter === "favorites") {
+			params.isFavorite = true;
+		} else if (activeFilter === "public") {
+			params.visibility = "public";
+		}
+		return params;
+	}, [activeFilter]);
 
 	const {
 		data,
@@ -44,7 +67,11 @@ export default function SavesScreen() {
 		fetchNextPage,
 		hasNextPage,
 		isFetchingNextPage,
-	} = useListSaves({ limit: 20 });
+	} = useListSaves(queryParams);
+	
+	const clearFilter = useCallback(() => {
+		router.setParams({ filter: undefined });
+	}, [router]);
 
 	const toggleFavorite = useToggleFavorite();
 	const toggleArchive = useToggleArchive();
@@ -97,31 +124,49 @@ export default function SavesScreen() {
 		() => (
 			<View style={styles.emptyState}>
 				<View style={[styles.iconContainer, { backgroundColor: colors.muted }]}>
-					<Bookmark
-						size={48}
-						color={colors.mutedForeground}
-						strokeWidth={1.5}
-					/>
+					{activeFilter === "favorites" ? (
+						<Heart size={48} color={colors.mutedForeground} strokeWidth={1.5} />
+					) : (
+						<Bookmark size={48} color={colors.mutedForeground} strokeWidth={1.5} />
+					)}
 				</View>
 				<Text style={[styles.emptyTitle, { color: colors.text }]}>
-					No saves yet
+					{activeFilter === "all" 
+						? "No saves yet" 
+						: activeFilter === "favorites"
+						? "No favorites yet"
+						: "No public saves yet"}
 				</Text>
 				<Text
 					style={[styles.emptyDescription, { color: colors.mutedForeground }]}
 				>
-					Start saving links by sharing them to Backpocket from any app, or add
-					one manually below.
+					{activeFilter === "all" 
+						? "Start saving links by sharing them to Backpocket from any app, or add one manually below."
+						: activeFilter === "favorites"
+						? "Mark saves as favorites and they'll appear here."
+						: "Make saves public and they'll appear here."}
 				</Text>
-				<Button
-					onPress={() => router.push("/save/new")}
-					style={styles.addButton}
-				>
-					<Plus size={20} color="#FFFFFF" />
-					<Text style={styles.addButtonText}>Add Save</Text>
-				</Button>
+				{activeFilter === "all" && (
+					<Button
+						onPress={() => router.push("/save/new")}
+						style={styles.addButton}
+					>
+						<Plus size={20} color="#FFFFFF" />
+						<Text style={styles.addButtonText}>Add Save</Text>
+					</Button>
+				)}
+				{activeFilter !== "all" && (
+					<Button
+						variant="secondary"
+						onPress={clearFilter}
+						style={styles.addButton}
+					>
+						<Text style={[styles.addButtonText, { color: colors.text }]}>View All Saves</Text>
+					</Button>
+				)}
 			</View>
 		),
-		[colors, router],
+		[colors, router, activeFilter, clearFilter],
 	);
 
 	const renderFooter = useCallback(() => {
@@ -168,6 +213,23 @@ export default function SavesScreen() {
 
 	return (
 		<View style={[styles.container, { backgroundColor: colors.background }]}>
+			{/* Active Filter Indicator */}
+			{activeFilter !== "all" && (
+				<View style={[styles.filterBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+					<Text style={[styles.filterLabel, { color: colors.mutedForeground }]}>
+						Showing:
+					</Text>
+					<View style={[styles.filterChip, { backgroundColor: colors.primary + "20" }]}>
+						<Text style={[styles.filterChipText, { color: colors.primary }]}>
+							{filterLabels[activeFilter]}
+						</Text>
+						<TouchableOpacity onPress={clearFilter} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+							<X size={14} color={colors.primary} strokeWidth={2.5} />
+						</TouchableOpacity>
+					</View>
+				</View>
+			)}
+			
 			<FlatList
 				data={saves}
 				renderItem={renderItem}
@@ -364,6 +426,31 @@ const styles = StyleSheet.create({
 	centered: {
 		justifyContent: "center",
 		alignItems: "center",
+	},
+	filterBar: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+		gap: 8,
+	},
+	filterLabel: {
+		fontSize: 13,
+		fontFamily: "DMSans",
+	},
+	filterChip: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 10,
+		paddingVertical: 5,
+		borderRadius: radii.full,
+		gap: 6,
+	},
+	filterChipText: {
+		fontSize: 13,
+		fontFamily: "DMSans-Medium",
+		fontWeight: "500",
 	},
 	listContent: {
 		padding: 16,

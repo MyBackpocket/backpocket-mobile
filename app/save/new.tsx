@@ -17,6 +17,8 @@ import {
 	View,
 } from "react-native";
 
+const HEADER_BUTTON_SIZE = 36;
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -130,17 +132,21 @@ export default function NewSaveScreen() {
 				options={{
 					title: "Add Save",
 					headerLeft: () => (
-						<TouchableOpacity onPress={() => router.back()}>
-							<ChevronLeft size={28} color={colors.text} />
+						<TouchableOpacity
+							onPress={() => router.back()}
+							style={styles.headerButton}
+						>
+							<ChevronLeft size={24} color={colors.text} />
 						</TouchableOpacity>
 					),
 					headerRight: () => (
 						<TouchableOpacity
 							onPress={handleSave}
 							disabled={createSave.isPending || !url.trim()}
+							style={styles.headerButton}
 						>
 							<Check
-								size={24}
+								size={22}
 								color={
 									createSave.isPending || !url.trim()
 										? colors.mutedForeground
@@ -315,6 +321,13 @@ const styles = StyleSheet.create({
 	},
 	content: {
 		padding: 16,
+	},
+	headerButton: {
+		width: HEADER_BUTTON_SIZE,
+		height: HEADER_BUTTON_SIZE,
+		borderRadius: HEADER_BUTTON_SIZE / 2,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	section: {
 		marginBottom: 16,

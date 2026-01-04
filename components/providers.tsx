@@ -16,6 +16,11 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { APIClientProvider } from "@/lib/api/hooks";
 import { tokenCache } from "@/lib/auth/token-cache";
 import { CLERK_PUBLISHABLE_KEY } from "@/lib/constants";
+import {
+	SettingsContext,
+	useSettingsStore,
+	type ThemePreference,
+} from "@/lib/settings";
 import { ThemeProvider } from "@/lib/theme/provider";
 
 // Create a React Query client with sensible defaults
@@ -64,19 +69,41 @@ interface ProvidersProps {
 	children: React.ReactNode;
 }
 
-function InnerProviders({ children }: ProvidersProps) {
+interface InnerProvidersProps extends ProvidersProps {
+	themePreference: ThemePreference;
+}
+
+function InnerProviders({ children, themePreference }: InnerProvidersProps) {
 	const colorScheme = useColorScheme();
+
+	// Determine effective color scheme based on preference
+	const effectiveScheme =
+		themePreference === "system" ? colorScheme : themePreference;
 	const navigationTheme =
-		colorScheme === "dark" ? BackpocketDarkTheme : BackpocketLightTheme;
+		effectiveScheme === "dark" ? BackpocketDarkTheme : BackpocketLightTheme;
 
 	return (
-		<QueryClientProvider client={queryClient}>
-			<APIClientProvider>
-				<NavigationThemeProvider value={navigationTheme}>
-					{children}
-				</NavigationThemeProvider>
-			</APIClientProvider>
-		</QueryClientProvider>
+		<ThemeProvider forcedColorScheme={themePreference}>
+			<QueryClientProvider client={queryClient}>
+				<APIClientProvider>
+					<NavigationThemeProvider value={navigationTheme}>
+						{children}
+					</NavigationThemeProvider>
+				</APIClientProvider>
+			</QueryClientProvider>
+		</ThemeProvider>
+	);
+}
+
+function SettingsWrapper({ children }: ProvidersProps) {
+	const settingsStore = useSettingsStore();
+
+	return (
+		<SettingsContext.Provider value={settingsStore}>
+			<InnerProviders themePreference={settingsStore.settings.theme}>
+				{children}
+			</InnerProviders>
+		</SettingsContext.Provider>
 	);
 }
 
@@ -86,11 +113,7 @@ export function Providers({ children }: ProvidersProps) {
 		console.warn(
 			"[auth] Clerk publishable key not configured. Auth features disabled.",
 		);
-		return (
-			<ThemeProvider forcedColorScheme="system">
-				<InnerProviders>{children}</InnerProviders>
-			</ThemeProvider>
-		);
+		return <SettingsWrapper>{children}</SettingsWrapper>;
 	}
 
 	return (
@@ -99,9 +122,7 @@ export function Providers({ children }: ProvidersProps) {
 			tokenCache={tokenCache}
 		>
 			<ClerkLoaded>
-				<ThemeProvider forcedColorScheme="system">
-					<InnerProviders>{children}</InnerProviders>
-				</ThemeProvider>
+				<SettingsWrapper>{children}</SettingsWrapper>
 			</ClerkLoaded>
 		</ClerkProvider>
 	);
