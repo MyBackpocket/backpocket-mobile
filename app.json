@@ -11,6 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "dev.backpocket.app",
+      "appleTeamId": "UPPDT2XJQU",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -56,9 +57,7 @@
       [
         "expo-share-intent",
         {
-          "androidIntentFilters": [
-            "text/*"
-          ],
+          "androidIntentFilters": ["text/*"],
           "androidMainActivityAttributes": {
             "android:launchMode": "singleTask"
           }
