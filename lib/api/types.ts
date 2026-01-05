@@ -223,3 +223,48 @@ export interface SlugAvailability {
 	available: boolean;
 	reason: SlugUnavailableReason | null;
 }
+
+// === Duplicate Detection Types ===
+
+/**
+ * Summary info about an existing save when a duplicate is detected
+ */
+export interface DuplicateSaveInfo {
+	id: string;
+	url: string;
+	title: string | null;
+	imageUrl: string | null;
+	siteName: string | null;
+	savedAt: string;
+}
+
+/**
+ * Input for checking if a URL already exists
+ */
+export interface CheckDuplicateInput {
+	url: string;
+}
+
+/**
+ * Response from checkDuplicate endpoint
+ * Returns null if no duplicate, or the existing save info if duplicate found
+ */
+export type CheckDuplicateResponse = DuplicateSaveInfo | null;
+
+/**
+ * Error cause structure for duplicate save errors
+ */
+export interface DuplicateSaveErrorCause {
+	type: "DUPLICATE_SAVE";
+	existingSave: DuplicateSaveInfo;
+}
+
+/**
+ * Structure of the error data from a duplicate save API error
+ */
+export interface DuplicateSaveErrorData {
+	code: "CONFLICT";
+	httpStatus: 409;
+	path: string;
+	cause: DuplicateSaveErrorCause;
+}

@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import * as Linking from "expo-linking";
 import {
 	AlertCircle,
+	Bookmark,
 	Check,
 	CheckCircle2,
 	Clock,
@@ -39,7 +40,12 @@ import {
 	useUpdateSettings,
 	useUpdateSlug,
 } from "@/lib/api/space";
-import type { DomainMapping, DomainStatus, SlugAvailability } from "@/lib/api/types";
+import type {
+	DomainMapping,
+	DomainStatus,
+	SaveVisibility,
+	SlugAvailability,
+} from "@/lib/api/types";
 import { buildPublicSpaceUrl, ROOT_DOMAIN } from "@/lib/constants";
 
 // Slug validation regex (same as API)
@@ -165,7 +171,7 @@ export default function PublicSpaceSettingsScreen() {
 				setIsCheckingSlug(false);
 			},
 		});
-	}, [debouncedSlug, isEditingSlug, space?.slug]);
+	}, [debouncedSlug, isEditingSlug, space?.slug, checkSlugAvailability.mutate]);
 
 	const isPublicEnabled = space?.visibility === "public";
 	const publicUrl = space?.slug ? buildPublicSpaceUrl(space.slug) : "";
@@ -175,6 +181,16 @@ export default function PublicSpaceSettingsScreen() {
 			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 			updateSettings.mutate({
 				visibility: value ? "public" : "private",
+			});
+		},
+		[updateSettings],
+	);
+
+	const handleSetDefaultSaveVisibility = useCallback(
+		(value: SaveVisibility) => {
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+			updateSettings.mutate({
+				defaultSaveVisibility: value,
 			});
 		},
 		[updateSettings],
@@ -309,7 +325,11 @@ export default function PublicSpaceSettingsScreen() {
 							{isPublicEnabled ? (
 								<Unlock size={20} color={brandColors.mint} strokeWidth={2} />
 							) : (
-								<Lock size={20} color={colors.mutedForeground} strokeWidth={2} />
+								<Lock
+									size={20}
+									color={colors.mutedForeground}
+									strokeWidth={2}
+								/>
 							)}
 						</View>
 						<View style={styles.rowContent}>
@@ -317,7 +337,10 @@ export default function PublicSpaceSettingsScreen() {
 								Public Space
 							</Text>
 							<Text
-								style={[styles.rowDescription, { color: colors.mutedForeground }]}
+								style={[
+									styles.rowDescription,
+									{ color: colors.mutedForeground },
+								]}
 							>
 								{isPublicEnabled
 									? "Your public saves are visible to anyone"
@@ -338,17 +361,124 @@ export default function PublicSpaceSettingsScreen() {
 				</CardContent>
 			</Card>
 
+			{/* Default Save Visibility */}
+			<Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
+				Default Save Visibility
+			</Text>
+			<Card style={styles.card}>
+				<CardContent style={styles.cardContent}>
+					<View style={styles.row}>
+						<View
+							style={[
+								styles.iconContainer,
+								{ backgroundColor: `${brandColors.rust.DEFAULT}15` },
+							]}
+						>
+							<Bookmark
+								size={20}
+								color={brandColors.rust.DEFAULT}
+								strokeWidth={2}
+							/>
+						</View>
+						<View style={styles.rowContent}>
+							<Text style={[styles.rowLabel, { color: colors.text }]}>
+								New saves default to
+							</Text>
+							<Text
+								style={[
+									styles.rowDescription,
+									{ color: colors.mutedForeground },
+								]}
+							>
+								When sharing or adding saves quickly
+							</Text>
+						</View>
+					</View>
+					<View style={styles.defaultVisibilityOptions}>
+						{(["public", "private"] as SaveVisibility[]).map((v) => {
+							const isSelected = space?.defaultSaveVisibility === v;
+							const isPublicOption = v === "public";
+							return (
+								<TouchableOpacity
+									key={v}
+									style={[
+										styles.defaultVisibilityOption,
+										{
+											borderColor: isSelected
+												? isPublicOption
+													? brandColors.mint
+													: colors.mutedForeground
+												: colors.border,
+											backgroundColor: isSelected
+												? isPublicOption
+													? `${brandColors.mint}15`
+													: `${colors.mutedForeground}10`
+												: "transparent",
+										},
+									]}
+									onPress={() => handleSetDefaultSaveVisibility(v)}
+									activeOpacity={0.7}
+									disabled={updateSettings.isPending}
+								>
+									{isPublicOption ? (
+										<Unlock
+											size={16}
+											color={
+												isSelected ? brandColors.mint : colors.mutedForeground
+											}
+											strokeWidth={2}
+										/>
+									) : (
+										<Lock
+											size={16}
+											color={
+												isSelected ? colors.text : colors.mutedForeground
+											}
+											strokeWidth={2}
+										/>
+									)}
+									<Text
+										style={[
+											styles.defaultVisibilityText,
+											{
+												color: isSelected
+													? isPublicOption
+														? brandColors.mint
+														: colors.text
+													: colors.mutedForeground,
+												fontFamily: isSelected ? "DMSans-Bold" : "DMSans-Medium",
+											},
+										]}
+									>
+										{v.charAt(0).toUpperCase() + v.slice(1)}
+									</Text>
+								</TouchableOpacity>
+							);
+						})}
+					</View>
+				</CardContent>
+			</Card>
+			<Text style={[styles.helpText, { color: colors.mutedForeground }]}>
+				This applies to quick saves from the share extension and new saves. You
+				can always change visibility for individual saves.
+			</Text>
+
 			{/* Public Space URL */}
 			{isPublicEnabled && (
 				<>
-					<Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
+					<Text
+						style={[styles.sectionTitle, { color: colors.mutedForeground }]}
+					>
 						Your Public Link
 					</Text>
 					<Card style={styles.card}>
 						<CardContent style={styles.cardContent}>
 							<View style={styles.urlContainer}>
 								<View
-									style={[styles.iconContainer, { backgroundColor: colors.muted }]}
+									style={[
+										styles.iconContainer,
+										{ backgroundColor: colors.muted },
+									]}
 								>
 									<Globe
 										size={20}
@@ -367,7 +497,10 @@ export default function PublicSpaceSettingsScreen() {
 								<TouchableOpacity
 									style={[
 										styles.urlButton,
-										{ backgroundColor: colors.muted, borderColor: colors.border },
+										{
+											backgroundColor: colors.muted,
+											borderColor: colors.border,
+										},
 									]}
 									onPress={handleCopyUrl}
 									activeOpacity={0.7}
@@ -408,12 +541,14 @@ export default function PublicSpaceSettingsScreen() {
 					</Card>
 
 					<Text style={[styles.helpText, { color: colors.mutedForeground }]}>
-						Share your public link with others to let them view your public saves
-						and collections. Only saves marked as public will be visible.
+						Share your public link with others to let them view your public
+						saves and collections. Only saves marked as public will be visible.
 					</Text>
 
 					{/* Subdomain/Slug Editor */}
-					<Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
+					<Text
+						style={[styles.sectionTitle, { color: colors.mutedForeground }]}
+					>
 						Customize Subdomain
 					</Text>
 					<Card style={styles.card}>
@@ -439,7 +574,10 @@ export default function PublicSpaceSettingsScreen() {
 											maxLength={MAX_SLUG_LENGTH}
 										/>
 										<Text
-											style={[styles.slugSuffix, { color: colors.mutedForeground }]}
+											style={[
+												styles.slugSuffix,
+												{ color: colors.mutedForeground },
+											]}
 										>
 											.{ROOT_DOMAIN}
 										</Text>
@@ -497,7 +635,7 @@ export default function PublicSpaceSettingsScreen() {
 													</Text>
 												</>
 											) : slugInput.length > 0 &&
-											  slugInput.length < MIN_SLUG_LENGTH ? (
+												slugInput.length < MIN_SLUG_LENGTH ? (
 												<Text
 													style={[
 														styles.availabilityText,
@@ -521,7 +659,9 @@ export default function PublicSpaceSettingsScreen() {
 											onPress={handleCancelEditSlug}
 											activeOpacity={0.7}
 										>
-											<Text style={[styles.editButtonText, { color: colors.text }]}>
+											<Text
+												style={[styles.editButtonText, { color: colors.text }]}
+											>
 												Cancel
 											</Text>
 										</TouchableOpacity>
@@ -565,7 +705,10 @@ export default function PublicSpaceSettingsScreen() {
 											{space?.slug}
 										</Text>
 										<Text
-											style={[styles.slugSuffix, { color: colors.mutedForeground }]}
+											style={[
+												styles.slugSuffix,
+												{ color: colors.mutedForeground },
+											]}
 										>
 											.{ROOT_DOMAIN}
 										</Text>
@@ -590,83 +733,84 @@ export default function PublicSpaceSettingsScreen() {
 					</Card>
 
 					{/* Custom Domains */}
-					<Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
+					<Text
+						style={[styles.sectionTitle, { color: colors.mutedForeground }]}
+					>
 						Custom Domains
 					</Text>
 
 					{isLoadingDomains ? (
 						<Card style={styles.card}>
 							<CardContent style={styles.cardContent}>
-								<ActivityIndicator size="small" color={colors.mutedForeground} />
+								<ActivityIndicator
+									size="small"
+									color={colors.mutedForeground}
+								/>
 							</CardContent>
 						</Card>
 					) : domains && domains.length > 0 ? (
-						<>
-							{domains.map((domain) => {
-								const statusInfo = getDomainStatusInfo(domain.status);
-								const StatusIcon = statusInfo.Icon;
+						domains.map((domain) => {
+							const statusInfo = getDomainStatusInfo(domain.status);
+							const StatusIcon = statusInfo.Icon;
 
-								return (
-									<Card key={domain.id} style={styles.card}>
-										<CardContent style={styles.cardContent}>
-											<View style={styles.domainRow}>
-												<View style={styles.domainInfo}>
-													<Text
-														style={[styles.domainName, { color: colors.text }]}
-														numberOfLines={1}
-													>
-														{domain.domain}
-													</Text>
-													<View style={styles.domainStatus}>
-														<StatusIcon
-															size={14}
-															color={statusInfo.color}
-															strokeWidth={2}
-														/>
-														<Text
-															style={[
-																styles.domainStatusText,
-																{ color: statusInfo.color },
-															]}
-														>
-															{statusInfo.label}
-														</Text>
-													</View>
-												</View>
-												<TouchableOpacity
-													style={[
-														styles.removeButton,
-														{ backgroundColor: `${colors.destructive}15` },
-													]}
-													onPress={() => handleRemoveDomain(domain)}
-													activeOpacity={0.7}
-													disabled={removeDomain.isPending}
+							return (
+								<Card key={domain.id} style={styles.card}>
+									<CardContent style={styles.cardContent}>
+										<View style={styles.domainRow}>
+											<View style={styles.domainInfo}>
+												<Text
+													style={[styles.domainName, { color: colors.text }]}
+													numberOfLines={1}
 												>
-													{removeDomain.isPending ? (
-														<ActivityIndicator
-															size="small"
-															color={colors.destructive}
-														/>
-													) : (
-														<Trash2
-															size={18}
-															color={colors.destructive}
-															strokeWidth={2}
-														/>
-													)}
-												</TouchableOpacity>
+													{domain.domain}
+												</Text>
+												<View style={styles.domainStatus}>
+													<StatusIcon
+														size={14}
+														color={statusInfo.color}
+														strokeWidth={2}
+													/>
+													<Text
+														style={[
+															styles.domainStatusText,
+															{ color: statusInfo.color },
+														]}
+													>
+														{statusInfo.label}
+													</Text>
+												</View>
 											</View>
-										</CardContent>
-									</Card>
-								);
-							})}
-						</>
+											<TouchableOpacity
+												style={[
+													styles.removeButton,
+													{ backgroundColor: `${colors.destructive}15` },
+												]}
+												onPress={() => handleRemoveDomain(domain)}
+												activeOpacity={0.7}
+												disabled={removeDomain.isPending}
+											>
+												{removeDomain.isPending ? (
+													<ActivityIndicator
+														size="small"
+														color={colors.destructive}
+													/>
+												) : (
+													<Trash2
+														size={18}
+														color={colors.destructive}
+														strokeWidth={2}
+													/>
+												)}
+											</TouchableOpacity>
+										</View>
+									</CardContent>
+								</Card>
+							);
+						})
 					) : null}
 
 					{/* Add Domain CTA (web only) */}
-					<Card
-						style={[styles.card, { backgroundColor: `${colors.muted}80` }]}
-					>
+					<Card style={[styles.card, { backgroundColor: `${colors.muted}80` }]}>
 						<CardContent style={styles.cardContent}>
 							<View style={styles.webOnlyContainer}>
 								<View
@@ -693,11 +837,16 @@ export default function PublicSpaceSettingsScreen() {
 								</View>
 							</View>
 							<TouchableOpacity
-								style={[styles.webSettingsButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+								style={[
+									styles.webSettingsButton,
+									{ backgroundColor: colors.card, borderColor: colors.border },
+								]}
 								onPress={handleOpenWebSettings}
 								activeOpacity={0.7}
 							>
-								<Text style={[styles.webSettingsButtonText, { color: colors.text }]}>
+								<Text
+									style={[styles.webSettingsButtonText, { color: colors.text }]}
+								>
 									Open Settings
 								</Text>
 								<ExternalLink size={16} color={colors.text} strokeWidth={2} />
@@ -949,6 +1098,26 @@ const styles = StyleSheet.create({
 	webSettingsButtonText: {
 		fontSize: 15,
 		fontFamily: "DMSans-Medium",
+		fontWeight: "500",
+	},
+	// Default visibility styles
+	defaultVisibilityOptions: {
+		flexDirection: "row",
+		gap: 12,
+		marginTop: 16,
+	},
+	defaultVisibilityOption: {
+		flex: 1,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 8,
+		paddingVertical: 14,
+		borderWidth: 1.5,
+		borderRadius: radii.md,
+	},
+	defaultVisibilityText: {
+		fontSize: 15,
 		fontWeight: "500",
 	},
 });

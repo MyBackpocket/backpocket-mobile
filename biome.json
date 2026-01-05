@@ -23,6 +23,27 @@
 			"quoteStyle": "double"
 		}
 	},
+	"css": {
+		"linter": {
+			"enabled": true
+		},
+		"parser": {
+			"cssModules": true,
+			"allowWrongLineComments": true
+		}
+	},
+	"overrides": [
+		{
+			"includes": ["*.css"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noUnknownAtRules": "off"
+					}
+				}
+			}
+		}
+	],
 	"assist": {
 		"enabled": true,
 		"actions": {

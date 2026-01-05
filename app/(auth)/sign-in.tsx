@@ -97,13 +97,14 @@ export default function SignInScreen() {
 				await setActive({ session: result.createdSessionId });
 				router.replace("/(tabs)");
 			} else {
-				console.log("2FA verification requires additional steps:", result.status);
+				console.log(
+					"2FA verification requires additional steps:",
+					result.status,
+				);
 			}
 		} catch (error: unknown) {
 			const message =
-				error instanceof Error
-					? error.message
-					: "Invalid verification code";
+				error instanceof Error ? error.message : "Invalid verification code";
 			Alert.alert("Verification Error", message);
 		} finally {
 			setLoading(false);
@@ -118,12 +119,13 @@ export default function SignInScreen() {
 			await signIn.prepareSecondFactor({
 				strategy: "email_code",
 			});
-			Alert.alert("Code Sent", "A new verification code has been sent to your email");
+			Alert.alert(
+				"Code Sent",
+				"A new verification code has been sent to your email",
+			);
 		} catch (error: unknown) {
 			const message =
-				error instanceof Error
-					? error.message
-					: "Failed to resend code";
+				error instanceof Error ? error.message : "Failed to resend code";
 			Alert.alert("Error", message);
 		} finally {
 			setLoading(false);
@@ -187,7 +189,12 @@ export default function SignInScreen() {
 							<Text style={[styles.twoFactorTitle, { color: colors.text }]}>
 								Check Your Email
 							</Text>
-							<Text style={[styles.twoFactorSubtitle, { color: colors.mutedForeground }]}>
+							<Text
+								style={[
+									styles.twoFactorSubtitle,
+									{ color: colors.mutedForeground },
+								]}
+							>
 								We sent a verification code to your email address
 							</Text>
 
@@ -257,15 +264,24 @@ export default function SignInScreen() {
 
 							<View style={styles.divider}>
 								<View
-									style={[styles.dividerLine, { backgroundColor: colors.border }]}
+									style={[
+										styles.dividerLine,
+										{ backgroundColor: colors.border },
+									]}
 								/>
 								<Text
-									style={[styles.dividerText, { color: colors.mutedForeground }]}
+									style={[
+										styles.dividerText,
+										{ color: colors.mutedForeground },
+									]}
 								>
 									or continue with email
 								</Text>
 								<View
-									style={[styles.dividerLine, { backgroundColor: colors.border }]}
+									style={[
+										styles.dividerLine,
+										{ backgroundColor: colors.border },
+									]}
 								/>
 							</View>
 

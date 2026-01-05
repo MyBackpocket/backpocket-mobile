@@ -4,16 +4,21 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import {
 	Archive,
 	Bookmark,
+	Check,
 	ExternalLink,
+	Filter,
+	Globe,
 	Heart,
 	Plus,
 	X,
 } from "lucide-react-native";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
 	ActivityIndicator,
 	FlatList,
 	Image,
+	Modal,
+	Pressable,
 	RefreshControl,
 	StyleSheet,
 	Text,
@@ -40,13 +45,20 @@ const filterLabels: Record<FilterType, string> = {
 	public: "Public",
 };
 
+const filterOptions: { value: FilterType; label: string; icon: typeof Heart }[] = [
+	{ value: "all", label: "All Saves", icon: Bookmark },
+	{ value: "favorites", label: "Favorites", icon: Heart },
+	{ value: "public", label: "Public", icon: Globe },
+];
+
 export default function SavesScreen() {
 	const colors = useThemeColors();
 	const router = useRouter();
 	const { filter } = useLocalSearchParams<{ filter?: FilterType }>();
-	
+	const [showFilterModal, setShowFilterModal] = useState(false);
+
 	const activeFilter: FilterType = filter || "all";
-	
+
 	// Build query params based on filter
 	const queryParams = useMemo((): ListSavesInput => {
 		const params: ListSavesInput = { limit: 20 };
@@ -60,7 +72,7 @@ export default function SavesScreen() {
 
 	const {
 		data,
-		isLoading,
+		isPending,
 		isError,
 		refetch,
 		isRefetching,
@@ -68,16 +80,35 @@ export default function SavesScreen() {
 		hasNextPage,
 		isFetchingNextPage,
 	} = useListSaves(queryParams);
-	
+
 	const clearFilter = useCallback(() => {
 		router.setParams({ filter: undefined });
 	}, [router]);
+
+	const handleFilterSelect = useCallback((filterValue: FilterType) => {
+		Haptics.selectionAsync();
+		if (filterValue === "all") {
+			router.setParams({ filter: undefined });
+		} else {
+			router.setParams({ filter: filterValue });
+		}
+		setShowFilterModal(false);
+	}, [router]);
+
+	const openFilterModal = useCallback(() => {
+		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+		setShowFilterModal(true);
+	}, []);
 
 	const toggleFavorite = useToggleFavorite();
 	const toggleArchive = useToggleArchive();
 
 	// Flatten paginated data
 	const saves = data?.pages.flatMap((page) => page.items) ?? [];
+
+	// Only show full-screen loading on true initial load (no cached data available)
+	// React Query's proper platform setup ensures cached data is shown immediately
+	const showInitialLoading = isPending && !data;
 
 	const handleLoadMore = useCallback(() => {
 		if (hasNextPage && !isFetchingNextPage) {
@@ -127,24 +158,28 @@ export default function SavesScreen() {
 					{activeFilter === "favorites" ? (
 						<Heart size={48} color={colors.mutedForeground} strokeWidth={1.5} />
 					) : (
-						<Bookmark size={48} color={colors.mutedForeground} strokeWidth={1.5} />
+						<Bookmark
+							size={48}
+							color={colors.mutedForeground}
+							strokeWidth={1.5}
+						/>
 					)}
 				</View>
 				<Text style={[styles.emptyTitle, { color: colors.text }]}>
-					{activeFilter === "all" 
-						? "No saves yet" 
+					{activeFilter === "all"
+						? "No saves yet"
 						: activeFilter === "favorites"
-						? "No favorites yet"
-						: "No public saves yet"}
+							? "No favorites yet"
+							: "No public saves yet"}
 				</Text>
 				<Text
 					style={[styles.emptyDescription, { color: colors.mutedForeground }]}
 				>
-					{activeFilter === "all" 
+					{activeFilter === "all"
 						? "Start saving links by sharing them to Backpocket from any app, or add one manually below."
 						: activeFilter === "favorites"
-						? "Mark saves as favorites and they'll appear here."
-						: "Make saves public and they'll appear here."}
+							? "Mark saves as favorites and they'll appear here."
+							: "Make saves public and they'll appear here."}
 				</Text>
 				{activeFilter === "all" && (
 					<Button
@@ -161,7 +196,9 @@ export default function SavesScreen() {
 						onPress={clearFilter}
 						style={styles.addButton}
 					>
-						<Text style={[styles.addButtonText, { color: colors.text }]}>View All Saves</Text>
+						<Text style={[styles.addButtonText, { color: colors.text }]}>
+							View All Saves
+						</Text>
 					</Button>
 				)}
 			</View>
@@ -178,7 +215,7 @@ export default function SavesScreen() {
 		);
 	}, [isFetchingNextPage]);
 
-	if (isLoading) {
+	if (showInitialLoading) {
 		return (
 			<View
 				style={[
@@ -213,23 +250,143 @@ export default function SavesScreen() {
 
 	return (
 		<View style={[styles.container, { backgroundColor: colors.background }]}>
-			{/* Active Filter Indicator */}
-			{activeFilter !== "all" && (
-				<View style={[styles.filterBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-					<Text style={[styles.filterLabel, { color: colors.mutedForeground }]}>
-						Showing:
-					</Text>
-					<View style={[styles.filterChip, { backgroundColor: colors.primary + "20" }]}>
+			{/* Filter Bar - Always visible */}
+			<View
+				style={[
+					styles.filterBar,
+					{ backgroundColor: colors.card, borderBottomColor: colors.border },
+				]}
+			>
+				<Text style={[styles.filterLabel, { color: colors.mutedForeground }]}>
+					Showing:
+				</Text>
+				{activeFilter !== "all" ? (
+					<TouchableOpacity
+						onPress={openFilterModal}
+						style={[
+							styles.filterChip,
+							{ backgroundColor: `${colors.primary}20` },
+						]}
+						activeOpacity={0.7}
+					>
 						<Text style={[styles.filterChipText, { color: colors.primary }]}>
 							{filterLabels[activeFilter]}
 						</Text>
-						<TouchableOpacity onPress={clearFilter} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+						<TouchableOpacity
+							onPress={clearFilter}
+							hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+						>
 							<X size={14} color={colors.primary} strokeWidth={2.5} />
 						</TouchableOpacity>
+					</TouchableOpacity>
+				) : (
+					<TouchableOpacity
+						onPress={openFilterModal}
+						style={[
+							styles.filterChip,
+							{ backgroundColor: colors.muted },
+						]}
+						activeOpacity={0.7}
+					>
+						<Text style={[styles.filterChipText, { color: colors.text }]}>
+							All Saves
+						</Text>
+					</TouchableOpacity>
+				)}
+				<View style={styles.filterBarSpacer} />
+				<TouchableOpacity
+					onPress={openFilterModal}
+					style={[styles.filterButton, { backgroundColor: colors.muted }]}
+					activeOpacity={0.7}
+				>
+					<Filter size={18} color={colors.mutedForeground} />
+				</TouchableOpacity>
+			</View>
+
+			{/* Filter Selection Modal */}
+			<Modal
+				visible={showFilterModal}
+				transparent
+				animationType="fade"
+				onRequestClose={() => setShowFilterModal(false)}
+			>
+				<Pressable
+					style={styles.modalOverlay}
+					onPress={() => setShowFilterModal(false)}
+				>
+					<View
+						style={[
+							styles.modalContent,
+							{ backgroundColor: colors.card },
+						]}
+					>
+						<View style={styles.modalHeader}>
+							<Text style={[styles.modalTitle, { color: colors.text }]}>
+								Filter Saves
+							</Text>
+							<TouchableOpacity
+								onPress={() => setShowFilterModal(false)}
+								style={styles.modalCloseButton}
+							>
+								<X size={20} color={colors.mutedForeground} />
+							</TouchableOpacity>
+						</View>
+						<View style={styles.filterOptions}>
+							{filterOptions.map((option) => {
+								const isActive = activeFilter === option.value;
+								const IconComponent = option.icon;
+								return (
+									<TouchableOpacity
+										key={option.value}
+										style={[
+											styles.filterOption,
+											{ borderColor: colors.border },
+											isActive && {
+												backgroundColor: `${colors.primary}15`,
+												borderColor: colors.primary,
+											},
+										]}
+										onPress={() => handleFilterSelect(option.value)}
+										activeOpacity={0.7}
+									>
+										<View
+											style={[
+												styles.filterOptionIcon,
+												{
+													backgroundColor: isActive
+														? `${colors.primary}20`
+														: colors.muted,
+												},
+											]}
+										>
+											<IconComponent
+												size={18}
+												color={isActive ? colors.primary : colors.mutedForeground}
+											/>
+										</View>
+										<Text
+											style={[
+												styles.filterOptionText,
+												{ color: isActive ? colors.primary : colors.text },
+											]}
+										>
+											{option.label}
+										</Text>
+										{isActive && (
+											<Check
+												size={20}
+												color={colors.primary}
+												strokeWidth={2.5}
+											/>
+										)}
+									</TouchableOpacity>
+								);
+							})}
+						</View>
 					</View>
-				</View>
-			)}
-			
+				</Pressable>
+			</Modal>
+
 			<FlatList
 				data={saves}
 				renderItem={renderItem}
@@ -401,7 +558,7 @@ function SaveCard({
 						size={20}
 						color={
 							save.isArchived
-								? brandColors.denim.DEFAULT
+								? brandColors.teal
 								: colors.mutedForeground
 						}
 					/>
@@ -449,6 +606,73 @@ const styles = StyleSheet.create({
 	},
 	filterChipText: {
 		fontSize: 13,
+		fontFamily: "DMSans-Medium",
+		fontWeight: "500",
+	},
+	filterBarSpacer: {
+		flex: 1,
+	},
+	filterButton: {
+		width: 36,
+		height: 36,
+		borderRadius: radii.md,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	modalOverlay: {
+		flex: 1,
+		backgroundColor: "rgba(0, 0, 0, 0.5)",
+		justifyContent: "center",
+		alignItems: "center",
+		padding: 24,
+	},
+	modalContent: {
+		width: "100%",
+		maxWidth: 340,
+		borderRadius: radii.xl,
+		padding: 20,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 8 },
+		shadowOpacity: 0.3,
+		shadowRadius: 16,
+		elevation: 16,
+	},
+	modalHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		marginBottom: 20,
+	},
+	modalTitle: {
+		fontSize: 18,
+		fontFamily: "DMSans-Bold",
+		fontWeight: "700",
+	},
+	modalCloseButton: {
+		padding: 4,
+	},
+	filterOptions: {
+		gap: 10,
+	},
+	filterOption: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingVertical: 14,
+		paddingHorizontal: 14,
+		borderRadius: radii.lg,
+		borderWidth: 1,
+		gap: 12,
+	},
+	filterOptionIcon: {
+		width: 36,
+		height: 36,
+		borderRadius: radii.md,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	filterOptionText: {
+		flex: 1,
+		fontSize: 15,
 		fontFamily: "DMSans-Medium",
 		fontWeight: "500",
 	},

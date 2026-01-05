@@ -55,11 +55,16 @@ export function APIClientProvider({ children }: APIClientProviderProps) {
 		console.log("[Auth]", {
 			isSignedIn,
 			prevIsSignedIn: prevIsSignedIn.current,
-			willInvalidate: prevIsSignedIn.current !== isSignedIn && prevIsSignedIn.current !== undefined,
+			willInvalidate:
+				prevIsSignedIn.current !== isSignedIn &&
+				prevIsSignedIn.current !== undefined,
 		});
 
 		// Only invalidate when auth state actually changes (not on initial mount)
-		if (prevIsSignedIn.current !== isSignedIn && prevIsSignedIn.current !== undefined) {
+		if (
+			prevIsSignedIn.current !== isSignedIn &&
+			prevIsSignedIn.current !== undefined
+		) {
 			console.log("[Auth] Invalidating all queries due to auth state change");
 			// Clear all cached queries when auth state changes
 			queryClient.invalidateQueries();

@@ -1,7 +1,14 @@
 import * as Haptics from "expo-haptics";
 import * as Linking from "expo-linking";
 import { Bell, ExternalLink, Settings2 } from "lucide-react-native";
-import { Platform, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import {
+	Platform,
+	StyleSheet,
+	Switch,
+	Text,
+	TouchableOpacity,
+	View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Card, CardContent } from "@/components/ui/card";
 import { radii } from "@/constants/theme";
@@ -45,16 +52,26 @@ export default function NotificationsSettingsScreen() {
 					<CardContent style={styles.cardContent}>
 						<View style={styles.row}>
 							<View
-								style={[styles.iconContainer, { backgroundColor: colors.muted }]}
+								style={[
+									styles.iconContainer,
+									{ backgroundColor: colors.muted },
+								]}
 							>
-								<Bell size={20} color={colors.mutedForeground} strokeWidth={2} />
+								<Bell
+									size={20}
+									color={colors.mutedForeground}
+									strokeWidth={2}
+								/>
 							</View>
 							<View style={styles.rowContent}>
 								<Text style={[styles.rowLabel, { color: colors.text }]}>
 									Enable Notifications
 								</Text>
 								<Text
-									style={[styles.rowDescription, { color: colors.mutedForeground }]}
+									style={[
+										styles.rowDescription,
+										{ color: colors.mutedForeground },
+									]}
 								>
 									Receive updates about your saves and collections
 								</Text>
@@ -95,7 +112,10 @@ export default function NotificationsSettingsScreen() {
 								Open System Settings
 							</Text>
 							<Text
-								style={[styles.rowDescription, { color: colors.mutedForeground }]}
+								style={[
+									styles.rowDescription,
+									{ color: colors.mutedForeground },
+								]}
 							>
 								Manage notification permissions at the system level
 							</Text>
@@ -176,4 +196,3 @@ const styles = StyleSheet.create({
 		marginLeft: 4,
 	},
 });
-

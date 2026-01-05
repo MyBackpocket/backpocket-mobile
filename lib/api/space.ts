@@ -170,10 +170,10 @@ export function useVerifyDomain() {
 
 	return useMutation({
 		mutationFn: (domainId: string) =>
-			client.mutate<{ domainId: string }, { verified: boolean; status: string }>(
-				"space.verifyDomain",
-				{ domainId },
-			),
+			client.mutate<
+				{ domainId: string },
+				{ verified: boolean; status: string }
+			>("space.verifyDomain", { domainId }),
 		onSuccess: (_, domainId) => {
 			queryClient.invalidateQueries({ queryKey: spaceKeys.domains() });
 			queryClient.invalidateQueries({

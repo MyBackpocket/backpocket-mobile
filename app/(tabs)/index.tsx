@@ -12,6 +12,7 @@ import {
 	Plus,
 } from "lucide-react-native";
 import {
+	Alert,
 	Image,
 	RefreshControl,
 	ScrollView,
@@ -20,10 +21,13 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
+import { SwipeableRow } from "@/components/ui/swipeable-row";
 import { brandColors, radii } from "@/constants/theme";
 import { useThemeColors } from "@/hooks/use-theme-color";
+import { useDeleteSave, useToggleArchive, useToggleFavorite } from "@/lib/api/saves";
 import { useDashboard } from "@/lib/api/space";
 import type { Save } from "@/lib/api/types";
 
@@ -46,13 +50,37 @@ export default function DashboardScreen() {
 		isRefetching,
 	} = useDashboard();
 
+	// Mutations for swipe actions
+	const deleteSave = useDeleteSave();
+	const toggleArchive = useToggleArchive();
+	const toggleFavorite = useToggleFavorite();
+
 	const stats = dashboard?.stats;
-	const recentSaves = dashboard?.recentSaves || [];
+	// Filter out archived items from recent saves - they shouldn't appear here
+	const recentSaves = (dashboard?.recentSaves || []).filter(
+		(save) => !save.isArchived
+	);
+
+	const handleDeleteSave = (saveId: string) => {
+		deleteSave.mutate(saveId);
+	};
+
+	const handleArchiveSave = (saveId: string) => {
+		// Always archive (set to true) since we filter out archived items
+		toggleArchive.mutate({ saveId, value: true });
+	};
+
+	const handleFavoriteSave = (saveId: string, currentlyFavorite: boolean) => {
+		toggleFavorite.mutate({ saveId, value: !currentlyFavorite });
+	};
 
 	return (
 		<ScrollView
 			style={[styles.container, { backgroundColor: colors.background }]}
-			contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}
+			contentContainerStyle={[
+				styles.content,
+				{ paddingBottom: 24 + insets.bottom },
+			]}
 			showsVerticalScrollIndicator={false}
 			refreshControl={
 				<RefreshControl
@@ -65,12 +93,14 @@ export default function DashboardScreen() {
 			{/* Header */}
 			<View style={styles.header}>
 				{userImageUrl ? (
-					<Image
-						source={{ uri: userImageUrl }}
-						style={styles.profileImage}
-					/>
+					<Image source={{ uri: userImageUrl }} style={styles.profileImage} />
 				) : (
-					<View style={[styles.profilePlaceholder, { backgroundColor: colors.muted }]}>
+					<View
+						style={[
+							styles.profilePlaceholder,
+							{ backgroundColor: colors.muted },
+						]}
+					>
 						<Text style={[styles.profileInitial, { color: colors.text }]}>
 							{userName.charAt(0).toUpperCase()}
 						</Text>
@@ -108,7 +138,10 @@ export default function DashboardScreen() {
 						colors={colors}
 						onPress={() => {
 							Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-							router.push({ pathname: "/(tabs)/saves", params: { filter: "favorites" } });
+							router.push({
+								pathname: "/(tabs)/saves",
+								params: { filter: "favorites" },
+							});
 						}}
 					/>
 				</View>
@@ -121,7 +154,10 @@ export default function DashboardScreen() {
 						colors={colors}
 						onPress={() => {
 							Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-							router.push({ pathname: "/(tabs)/saves", params: { filter: "public" } });
+							router.push({
+								pathname: "/(tabs)/saves",
+								params: { filter: "public" },
+							});
 						}}
 					/>
 					<StatCard
@@ -155,7 +191,7 @@ export default function DashboardScreen() {
 						Recent Saves
 					</Text>
 					{recentSaves.length > 0 && (
-						<TouchableOpacity 
+						<TouchableOpacity
 							onPress={() => router.push("/(tabs)/saves")}
 							style={styles.viewAllButton}
 							activeOpacity={0.7}
@@ -168,10 +204,17 @@ export default function DashboardScreen() {
 					)}
 				</View>
 
-				<View style={[styles.recentCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+				<View
+					style={[
+						styles.recentCard,
+						{ backgroundColor: colors.card, borderColor: colors.border },
+					]}
+				>
 					{isLoading && (
 						<View style={styles.emptyContainer}>
-							<Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+							<Text
+								style={[styles.emptyText, { color: colors.mutedForeground }]}
+							>
 								Loading...
 							</Text>
 						</View>
@@ -187,31 +230,38 @@ export default function DashboardScreen() {
 
 					{!isLoading && !isError && recentSaves.length === 0 && (
 						<View style={styles.emptyContainer}>
-							<View style={[styles.emptyIcon, { backgroundColor: colors.muted }]}>
+							<View
+								style={[styles.emptyIcon, { backgroundColor: colors.muted }]}
+							>
 								<Bookmark size={28} color={colors.mutedForeground} />
 							</View>
 							<Text style={[styles.emptyTitle, { color: colors.text }]}>
 								No saves yet
 							</Text>
-							<Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+							<Text
+								style={[styles.emptyText, { color: colors.mutedForeground }]}
+							>
 								Share a link to Backpocket to get started!
 							</Text>
 						</View>
 					)}
 
-					{!isLoading && recentSaves.length > 0 && (
-						<View style={styles.savesList}>
-							{recentSaves.slice(0, 5).map((save, index) => (
-								<SaveListItem
-									key={save.id}
-									save={save}
-									colors={colors}
-									isLast={index === Math.min(recentSaves.length, 5) - 1}
-									onPress={() => router.push(`/save/${save.id}`)}
-								/>
-							))}
-						</View>
-					)}
+				{!isLoading && recentSaves.length > 0 && (
+					<GestureHandlerRootView style={styles.savesList}>
+						{recentSaves.slice(0, 5).map((save, index) => (
+							<SaveListItem
+								key={save.id}
+								save={save}
+								colors={colors}
+								isLast={index === Math.min(recentSaves.length, 5) - 1}
+								onPress={() => router.push(`/save/${save.id}`)}
+								onDelete={() => handleDeleteSave(save.id)}
+								onArchive={() => handleArchiveSave(save.id)}
+								onFavorite={() => handleFavoriteSave(save.id, save.isFavorite)}
+							/>
+						))}
+					</GestureHandlerRootView>
+				)}
 				</View>
 			</View>
 		</ScrollView>
@@ -221,20 +271,39 @@ export default function DashboardScreen() {
 interface StatCardProps {
 	title: string;
 	value: string;
-	icon: React.ComponentType<{ size: number; color: string; strokeWidth?: number }>;
+	icon: React.ComponentType<{
+		size: number;
+		color: string;
+		strokeWidth?: number;
+	}>;
 	iconColor: string;
 	colors: ReturnType<typeof useThemeColors>;
 	onPress?: () => void;
 }
 
-function StatCard({ title, value, icon: Icon, iconColor, colors, onPress }: StatCardProps) {
+function StatCard({
+	title,
+	value,
+	icon: Icon,
+	iconColor,
+	colors,
+	onPress,
+}: StatCardProps) {
 	return (
-		<TouchableOpacity 
-			style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+		<TouchableOpacity
+			style={[
+				styles.statCard,
+				{ backgroundColor: colors.card, borderColor: colors.border },
+			]}
 			onPress={onPress}
 			activeOpacity={0.7}
 		>
-			<View style={[styles.statIconContainer, { backgroundColor: `${iconColor}20` }]}>
+			<View
+				style={[
+					styles.statIconContainer,
+					{ backgroundColor: `${iconColor}20` },
+				]}
+			>
 				<Icon size={18} color={iconColor} strokeWidth={2} />
 			</View>
 			<View style={styles.statTextContainer}>
@@ -243,7 +312,11 @@ function StatCard({ title, value, icon: Icon, iconColor, colors, onPress }: Stat
 					{title}
 				</Text>
 			</View>
-			<ChevronRight size={16} color={colors.mutedForeground} style={styles.statChevron} />
+			<ChevronRight
+				size={16}
+				color={colors.mutedForeground}
+				style={styles.statChevron}
+			/>
 		</TouchableOpacity>
 	);
 }
@@ -253,43 +326,97 @@ interface SaveListItemProps {
 	colors: ReturnType<typeof useThemeColors>;
 	isLast?: boolean;
 	onPress: () => void;
+	onDelete: () => void;
+	onArchive: () => void;
+	onFavorite: () => void;
 }
 
-function SaveListItem({ save, colors, isLast, onPress }: SaveListItemProps) {
+function SaveListItem({
+	save,
+	colors,
+	isLast,
+	onPress,
+	onDelete,
+	onArchive,
+	onFavorite,
+}: SaveListItemProps) {
 	const handleOpenUrl = () => {
 		Linking.openURL(save.url);
 	};
 
+	const handleDelete = () => {
+		Alert.alert(
+			"Delete Save",
+			"Are you sure you want to delete this save? This cannot be undone.",
+			[
+				{ text: "Cancel", style: "cancel" },
+				{
+					text: "Delete",
+					style: "destructive",
+					onPress: () => {
+						Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+						onDelete();
+					},
+				},
+			]
+		);
+	};
+
+	const handleArchive = () => {
+		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+		onArchive();
+	};
+
+	const handleFavorite = () => {
+		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+		onFavorite();
+	};
+
 	return (
-		<TouchableOpacity
-			style={[
-				styles.saveItem, 
-				!isLast && { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth }
-			]}
+		<SwipeableRow
 			onPress={onPress}
-			activeOpacity={0.6}
+			onDelete={handleDelete}
+			onArchive={handleArchive}
+			onFavorite={handleFavorite}
+			isArchived={save.isArchived}
+			isFavorite={save.isFavorite}
 		>
-			<View style={[styles.saveIcon, { backgroundColor: colors.muted }]}>
-				<Bookmark size={18} color={colors.mutedForeground} />
-			</View>
-			<View style={styles.saveContent}>
-				<Text
-					style={[styles.saveTitle, { color: colors.text }]}
-					numberOfLines={1}
+			<View
+				style={[
+					styles.saveItem,
+					{ backgroundColor: colors.card },
+					!isLast && {
+						borderBottomColor: colors.border,
+						borderBottomWidth: StyleSheet.hairlineWidth,
+					},
+				]}
+			>
+				<View style={[styles.saveIcon, { backgroundColor: colors.muted }]}>
+					<Bookmark size={18} color={colors.mutedForeground} />
+				</View>
+				<View style={styles.saveContent}>
+					<Text
+						style={[styles.saveTitle, { color: colors.text }]}
+						numberOfLines={1}
+					>
+						{save.title || save.url}
+					</Text>
+					<Text
+						style={[styles.saveUrl, { color: colors.mutedForeground }]}
+						numberOfLines={1}
+					>
+						{save.siteName || new URL(save.url).hostname}
+					</Text>
+				</View>
+				<TouchableOpacity
+					onPress={handleOpenUrl}
+					style={styles.saveAction}
+					activeOpacity={0.6}
 				>
-					{save.title || save.url}
-				</Text>
-				<Text
-					style={[styles.saveUrl, { color: colors.mutedForeground }]}
-					numberOfLines={1}
-				>
-					{save.siteName || new URL(save.url).hostname}
-				</Text>
+					<ExternalLink size={20} color={colors.mutedForeground} />
+				</TouchableOpacity>
 			</View>
-			<TouchableOpacity onPress={handleOpenUrl} style={styles.saveAction} activeOpacity={0.6}>
-				<ExternalLink size={20} color={colors.mutedForeground} />
-			</TouchableOpacity>
-		</TouchableOpacity>
+		</SwipeableRow>
 	);
 }
 

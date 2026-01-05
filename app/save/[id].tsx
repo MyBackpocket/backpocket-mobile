@@ -451,9 +451,7 @@ export default function SaveDetailScreen() {
 									: colors.mutedForeground
 							}
 						/>
-						<Text
-							style={[styles.actionButtonText, { color: colors.text }]}
-						>
+						<Text style={[styles.actionButtonText, { color: colors.text }]}>
 							{save.isArchived ? "Unarchive Save" : "Archive Save"}
 						</Text>
 					</Button>

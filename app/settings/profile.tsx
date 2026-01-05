@@ -10,7 +10,6 @@ import {
 	StyleSheet,
 	Text,
 	TextInput,
-	TouchableOpacity,
 	View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -173,7 +172,10 @@ export default function ProfileSettingsScreen() {
 						>
 							<Mail size={18} color={colors.mutedForeground} />
 							<Text
-								style={[styles.inputDisabledText, { color: colors.mutedForeground }]}
+								style={[
+									styles.inputDisabledText,
+									{ color: colors.mutedForeground },
+								]}
 							>
 								{user?.emailAddresses?.[0]?.emailAddress || "No email"}
 							</Text>
@@ -312,4 +314,3 @@ const styles = StyleSheet.create({
 		fontWeight: "600",
 	},
 });
-

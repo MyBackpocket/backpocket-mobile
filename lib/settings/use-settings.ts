@@ -95,4 +95,3 @@ export function useSettings(): SettingsContextValue {
 	}
 	return context;
 }
-

@@ -73,9 +73,16 @@ export default function AppearanceSettingsScreen() {
 								activeOpacity={0.7}
 							>
 								<View
-									style={[styles.iconContainer, { backgroundColor: colors.muted }]}
+									style={[
+										styles.iconContainer,
+										{ backgroundColor: colors.muted },
+									]}
 								>
-									<Icon size={20} color={colors.mutedForeground} strokeWidth={2} />
+									<Icon
+										size={20}
+										color={colors.mutedForeground}
+										strokeWidth={2}
+									/>
 								</View>
 								<View style={styles.optionContent}>
 									<Text style={[styles.optionLabel, { color: colors.text }]}>
@@ -162,4 +169,3 @@ const styles = StyleSheet.create({
 		marginLeft: 4,
 	},
 });
-

@@ -9,34 +9,21 @@ import {
 	DefaultTheme,
 	ThemeProvider as NavigationThemeProvider,
 } from "@react-navigation/native";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { ShareIntentProvider } from "expo-share-intent";
 import type React from "react";
 import { brandColors, Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { APIClientProvider } from "@/lib/api/hooks";
+import { queryClient } from "@/lib/api/query-client";
 import { tokenCache } from "@/lib/auth/token-cache";
 import { CLERK_PUBLISHABLE_KEY } from "@/lib/constants";
 import {
 	SettingsContext,
-	useSettingsStore,
 	type ThemePreference,
+	useSettingsStore,
 } from "@/lib/settings";
 import { ThemeProvider } from "@/lib/theme/provider";
-
-// Create a React Query client with sensible defaults
-const queryClient = new QueryClient({
-	defaultOptions: {
-		queries: {
-			staleTime: 1000 * 60 * 5, // 5 minutes
-			gcTime: 1000 * 60 * 30, // 30 minutes (formerly cacheTime)
-			retry: 2,
-			refetchOnWindowFocus: true,
-		},
-		mutations: {
-			retry: 1,
-		},
-	},
-});
 
 // Custom navigation themes with Backpocket colors
 const BackpocketLightTheme = {
@@ -113,17 +100,23 @@ export function Providers({ children }: ProvidersProps) {
 		console.warn(
 			"[auth] Clerk publishable key not configured. Auth features disabled.",
 		);
-		return <SettingsWrapper>{children}</SettingsWrapper>;
+		return (
+			<ShareIntentProvider options={{ debug: true }}>
+				<SettingsWrapper>{children}</SettingsWrapper>
+			</ShareIntentProvider>
+		);
 	}
 
 	return (
-		<ClerkProvider
-			publishableKey={CLERK_PUBLISHABLE_KEY}
-			tokenCache={tokenCache}
-		>
-			<ClerkLoaded>
-				<SettingsWrapper>{children}</SettingsWrapper>
-			</ClerkLoaded>
-		</ClerkProvider>
+		<ShareIntentProvider options={{ debug: true }}>
+			<ClerkProvider
+				publishableKey={CLERK_PUBLISHABLE_KEY}
+				tokenCache={tokenCache}
+			>
+				<ClerkLoaded>
+					<SettingsWrapper>{children}</SettingsWrapper>
+				</ClerkLoaded>
+			</ClerkProvider>
+		</ShareIntentProvider>
 	);
 }

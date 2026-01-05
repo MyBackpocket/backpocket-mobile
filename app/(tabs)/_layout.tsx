@@ -58,7 +58,7 @@ interface TabsNavigatorProps {
 
 function TabsNavigator({ colors }: TabsNavigatorProps) {
 	const insets = useSafeAreaInsets();
-	
+
 	return (
 		<Tabs
 			sceneContainerStyle={{

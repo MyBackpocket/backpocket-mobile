@@ -12,3 +12,4 @@ export {
 export { Icon, type IconProps, IconSizes } from "./icon";
 export { Input } from "./input";
 export { Logo, LogoIcon } from "./logo";
+export { SwipeableRow } from "./swipeable-row";

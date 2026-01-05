@@ -6,8 +6,8 @@
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Check, ChevronLeft, Link as LinkIcon } from "lucide-react-native";
-import { useCallback, useEffect, useState } from "react";
+import { Check, ChevronLeft, Link as LinkIcon, X } from "lucide-react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	Alert,
 	ScrollView,
@@ -17,28 +17,43 @@ import {
 	View,
 } from "react-native";
 
-const HEADER_BUTTON_SIZE = 36;
+const HEADER_BUTTON_SIZE = 40;
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { brandColors, radii } from "@/constants/theme";
 import { useThemeColors } from "@/hooks/use-theme-color";
-import { useCreateSave } from "@/lib/api/saves";
-import type { SaveVisibility } from "@/lib/api/types";
+import { getDuplicateSaveFromError, useCreateSave } from "@/lib/api/saves";
+import { useMySpace } from "@/lib/api/space";
+import type { DuplicateSaveInfo, SaveVisibility } from "@/lib/api/types";
 
 export default function NewSaveScreen() {
 	const router = useRouter();
 	const params = useLocalSearchParams<{ url?: string }>();
 	const colors = useThemeColors();
 
+	// Get user's space settings for default visibility
+	const { data: space } = useMySpace();
+
 	const createSave = useCreateSave();
 
 	const [url, setUrl] = useState(params.url || "");
 	const [title, setTitle] = useState("");
-	const [visibility, setVisibility] = useState<SaveVisibility>("private");
+	// Use space's default visibility or fall back to "public"
+	const [visibility, setVisibility] = useState<SaveVisibility>(
+		space?.defaultSaveVisibility ?? "public",
+	);
 	const [tagInput, setTagInput] = useState("");
 	const [tags, setTags] = useState<string[]>([]);
+
+	// Update visibility when space data loads (if user hasn't interacted yet)
+	const userChangedVisibility = useRef(false);
+	useEffect(() => {
+		if (space?.defaultSaveVisibility && !userChangedVisibility.current) {
+			setVisibility(space.defaultSaveVisibility);
+		}
+	}, [space?.defaultSaveVisibility]);
 
 	const isValidUrl = useCallback((text: string): boolean => {
 		try {
@@ -93,6 +108,57 @@ export default function NewSaveScreen() {
 		[tags],
 	);
 
+	/**
+	 * Format relative time for duplicate alert
+	 */
+	const formatRelativeTime = useCallback((dateString: string): string => {
+		const date = new Date(dateString);
+		const now = new Date();
+		const diffMs = now.getTime() - date.getTime();
+		const diffSecs = Math.floor(diffMs / 1000);
+		const diffMins = Math.floor(diffSecs / 60);
+		const diffHours = Math.floor(diffMins / 60);
+		const diffDays = Math.floor(diffHours / 24);
+
+		if (diffSecs < 60) return "just now";
+		if (diffMins < 60)
+			return `${diffMins} minute${diffMins === 1 ? "" : "s"} ago`;
+		if (diffHours < 24)
+			return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+		if (diffDays < 30) return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
+
+		return date.toLocaleDateString(undefined, {
+			month: "short",
+			day: "numeric",
+			year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+		});
+	}, []);
+
+	/**
+	 * Show duplicate save alert
+	 */
+	const showDuplicateAlert = useCallback(
+		(existingSave: DuplicateSaveInfo) => {
+			const title = existingSave.title || existingSave.url;
+			const savedTimeAgo = formatRelativeTime(existingSave.savedAt);
+
+			Alert.alert(
+				"Already Saved",
+				`You saved this link ${savedTimeAgo}:\n\n"${title.length > 60 ? `${title.substring(0, 60)}...` : title}"`,
+				[
+					{
+						text: "View Saves",
+						onPress: () => {
+							router.replace("/(tabs)/saves");
+						},
+					},
+					{ text: "OK", style: "cancel" },
+				],
+			);
+		},
+		[formatRelativeTime, router],
+	);
+
 	const handleSave = useCallback(async () => {
 		if (!url.trim()) {
 			Alert.alert("Error", "Please enter a URL");
@@ -118,13 +184,30 @@ export default function NewSaveScreen() {
 			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 			router.back();
 		} catch (error) {
+			// Check if this is a duplicate save error
+			const existingSave = getDuplicateSaveFromError(error);
+			if (existingSave) {
+				Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+				showDuplicateAlert(existingSave);
+				return;
+			}
+
 			Alert.alert(
 				"Error",
 				error instanceof Error ? error.message : "Failed to save link",
 			);
 			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 		}
-	}, [url, title, visibility, tags, createSave, router, isValidUrl]);
+	}, [
+		url,
+		title,
+		visibility,
+		tags,
+		createSave,
+		router,
+		isValidUrl,
+		showDuplicateAlert,
+	]);
 
 	return (
 		<>
@@ -136,7 +219,7 @@ export default function NewSaveScreen() {
 							onPress={() => router.back()}
 							style={styles.headerButton}
 						>
-							<ChevronLeft size={24} color={colors.text} />
+							<ChevronLeft size={22} color={colors.text} />
 						</TouchableOpacity>
 					),
 					headerRight: () => (
@@ -146,7 +229,7 @@ export default function NewSaveScreen() {
 							style={styles.headerButton}
 						>
 							<Check
-								size={22}
+								size={20}
 								color={
 									createSave.isPending || !url.trim()
 										? colors.mutedForeground
@@ -164,13 +247,11 @@ export default function NewSaveScreen() {
 				keyboardShouldPersistTaps="handled"
 			>
 				{/* URL Input */}
-				<Card style={styles.section}>
-					<CardContent style={styles.sectionContent}>
-						<View style={styles.inputGroup}>
-							<View
-								style={[styles.inputIcon, { backgroundColor: colors.muted }]}
-							>
-								<LinkIcon size={20} color={colors.mutedForeground} />
+				<Card style={styles.urlCard}>
+					<CardContent style={styles.urlCardContent}>
+						<View style={styles.urlInputGroup}>
+							<View style={[styles.urlIcon, { backgroundColor: colors.muted }]}>
+								<LinkIcon size={18} color={colors.mutedForeground} />
 							</View>
 							<Input
 								placeholder="https://example.com/article"
@@ -180,7 +261,7 @@ export default function NewSaveScreen() {
 								autoCorrect={false}
 								keyboardType="url"
 								returnKeyType="next"
-								containerStyle={styles.urlInput}
+								containerStyle={styles.urlInputContainer}
 							/>
 						</View>
 					</CardContent>
@@ -189,14 +270,13 @@ export default function NewSaveScreen() {
 				{/* Title (optional) */}
 				<Card style={styles.section}>
 					<CardContent style={styles.sectionContent}>
-						<Text style={[styles.label, { color: colors.text }]}>
+						<Text style={[styles.sectionLabel, { color: colors.text }]}>
 							Title (optional)
 						</Text>
 						<Input
 							placeholder="Custom title for this save"
 							value={title}
 							onChangeText={setTitle}
-							containerStyle={styles.input}
 						/>
 						<Text style={[styles.hint, { color: colors.mutedForeground }]}>
 							Leave empty to use the page title
@@ -207,39 +287,51 @@ export default function NewSaveScreen() {
 				{/* Visibility */}
 				<Card style={styles.section}>
 					<CardContent style={styles.sectionContent}>
-						<Text style={[styles.label, { color: colors.text }]}>
+						<Text style={[styles.sectionLabel, { color: colors.text }]}>
 							Visibility
 						</Text>
 						<View style={styles.visibilityOptions}>
 							{(["private", "public", "unlisted"] as SaveVisibility[]).map(
-								(v) => (
-									<TouchableOpacity
-										key={v}
-										style={[
-											styles.visibilityOption,
-											{ borderColor: colors.border },
-											visibility === v && {
-												borderColor: brandColors.rust.DEFAULT,
-												backgroundColor: `${brandColors.rust.DEFAULT}10`,
-											},
-										]}
-										onPress={() => setVisibility(v)}
-									>
-										<Text
+								(v) => {
+									const isSelected = visibility === v;
+									return (
+										<TouchableOpacity
+											key={v}
 											style={[
-												styles.visibilityText,
+												styles.visibilityOption,
 												{
-													color:
-														visibility === v
-															? brandColors.rust.DEFAULT
-															: colors.text,
+													borderColor: isSelected
+														? brandColors.rust.DEFAULT
+														: colors.border,
+													backgroundColor: isSelected
+														? `${brandColors.rust.DEFAULT}12`
+														: "transparent",
 												},
 											]}
+											onPress={() => {
+												userChangedVisibility.current = true;
+												setVisibility(v);
+											}}
+											activeOpacity={0.7}
 										>
-											{v.charAt(0).toUpperCase() + v.slice(1)}
-										</Text>
-									</TouchableOpacity>
-								),
+											<Text
+												style={[
+													styles.visibilityText,
+													{
+														color: isSelected
+															? brandColors.rust.DEFAULT
+															: colors.text,
+														fontFamily: isSelected
+															? "DMSans-Bold"
+															: "DMSans-Medium",
+													},
+												]}
+											>
+												{v.charAt(0).toUpperCase() + v.slice(1)}
+											</Text>
+										</TouchableOpacity>
+									);
+								},
 							)}
 						</View>
 					</CardContent>
@@ -248,7 +340,9 @@ export default function NewSaveScreen() {
 				{/* Tags */}
 				<Card style={styles.section}>
 					<CardContent style={styles.sectionContent}>
-						<Text style={[styles.label, { color: colors.text }]}>Tags</Text>
+						<Text style={[styles.sectionLabel, { color: colors.text }]}>
+							Tags
+						</Text>
 						<View style={styles.tagInputRow}>
 							<Input
 								placeholder="Add a tag"
@@ -257,26 +351,28 @@ export default function NewSaveScreen() {
 								onSubmitEditing={handleAddTag}
 								returnKeyType="done"
 								autoCapitalize="none"
-								containerStyle={styles.tagInput}
+								containerStyle={styles.tagInputContainer}
 							/>
 							<Button
 								size="sm"
 								onPress={handleAddTag}
 								disabled={!tagInput.trim()}
+								style={styles.addTagButton}
 							>
 								Add
 							</Button>
 						</View>
 						{tags.length > 0 && (
-							<View style={styles.tags}>
+							<View style={styles.tagsContainer}>
 								{tags.map((tag) => (
 									<TouchableOpacity
 										key={tag}
 										style={[
 											styles.tag,
-											{ backgroundColor: `${brandColors.denim.DEFAULT}15` },
+											{ backgroundColor: `${brandColors.denim.DEFAULT}18` },
 										]}
 										onPress={() => handleRemoveTag(tag)}
+										activeOpacity={0.7}
 									>
 										<Text
 											style={[
@@ -286,14 +382,7 @@ export default function NewSaveScreen() {
 										>
 											{tag}
 										</Text>
-										<Text
-											style={[
-												styles.tagRemove,
-												{ color: brandColors.denim.deep },
-											]}
-										>
-											×
-										</Text>
+										<X size={14} color={brandColors.denim.deep} />
 									</TouchableOpacity>
 								))}
 							</View>
@@ -302,14 +391,16 @@ export default function NewSaveScreen() {
 				</Card>
 
 				{/* Save Button */}
-				<Button
-					onPress={handleSave}
-					loading={createSave.isPending}
-					disabled={createSave.isPending || !url.trim()}
-					style={styles.saveButton}
-				>
-					Save Link
-				</Button>
+				<View style={styles.buttonContainer}>
+					<Button
+						onPress={handleSave}
+						loading={createSave.isPending}
+						disabled={createSave.isPending || !url.trim()}
+						style={styles.saveButton}
+					>
+						Save Link
+					</Button>
+				</View>
 			</ScrollView>
 		</>
 	);
@@ -320,7 +411,9 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	content: {
-		padding: 16,
+		padding: 20,
+		paddingTop: 24,
+		paddingBottom: 40,
 	},
 	headerButton: {
 		width: HEADER_BUTTON_SIZE,
@@ -329,88 +422,100 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	section: {
-		marginBottom: 16,
+	// URL Card - special styling for the primary input
+	urlCard: {
+		marginBottom: 24,
 	},
-	sectionContent: {
+	urlCardContent: {
 		padding: 16,
+		paddingTop: 16,
 	},
-	inputGroup: {
+	urlInputGroup: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 12,
+		gap: 14,
 	},
-	inputIcon: {
-		width: 44,
-		height: 44,
+	urlIcon: {
+		width: 48,
+		height: 48,
 		borderRadius: radii.md,
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	urlInput: {
+	urlInputContainer: {
 		flex: 1,
 	},
-	label: {
-		fontSize: 15,
+	// Regular sections
+	section: {
+		marginBottom: 20,
+	},
+	sectionContent: {
+		padding: 20,
+		paddingTop: 20,
+	},
+	sectionLabel: {
+		fontSize: 16,
 		fontFamily: "DMSans-Bold",
 		fontWeight: "600",
-		marginBottom: 10,
-	},
-	input: {
-		marginBottom: 4,
+		marginBottom: 14,
 	},
 	hint: {
 		fontSize: 13,
 		fontFamily: "DMSans",
-		marginTop: 4,
+		marginTop: 10,
+		lineHeight: 18,
 	},
+	// Visibility options
 	visibilityOptions: {
 		flexDirection: "row",
-		gap: 10,
+		gap: 12,
 	},
 	visibilityOption: {
 		flex: 1,
-		paddingVertical: 12,
-		borderWidth: 1,
+		paddingVertical: 14,
+		borderWidth: 1.5,
 		borderRadius: radii.md,
 		alignItems: "center",
 	},
 	visibilityText: {
-		fontSize: 14,
-		fontFamily: "DMSans-Medium",
+		fontSize: 15,
 	},
+	// Tags
 	tagInputRow: {
 		flexDirection: "row",
-		gap: 10,
+		gap: 12,
 		alignItems: "flex-end",
 	},
-	tagInput: {
+	tagInputContainer: {
 		flex: 1,
 	},
-	tags: {
+	addTagButton: {
+		marginBottom: 1,
+	},
+	tagsContainer: {
 		flexDirection: "row",
 		flexWrap: "wrap",
-		gap: 8,
-		marginTop: 12,
+		gap: 10,
+		marginTop: 16,
 	},
 	tag: {
 		flexDirection: "row",
 		alignItems: "center",
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		borderRadius: radii.sm,
-		gap: 4,
+		paddingLeft: 14,
+		paddingRight: 10,
+		paddingVertical: 8,
+		borderRadius: radii.full,
+		gap: 6,
 	},
 	tagText: {
-		fontSize: 13,
+		fontSize: 14,
 		fontFamily: "DMSans-Medium",
 	},
-	tagRemove: {
-		fontSize: 18,
-		fontWeight: "500",
-		marginLeft: 2,
+	// Save button
+	buttonContainer: {
+		marginTop: 12,
 	},
 	saveButton: {
-		marginTop: 8,
+		height: 52,
 	},
 });

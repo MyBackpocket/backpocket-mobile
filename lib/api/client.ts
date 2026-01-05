@@ -8,13 +8,6 @@
 import { API_URL } from "@/lib/constants";
 
 /**
- * tRPC request body format
- */
-interface TRPCRequestBody<T = unknown> {
-	json: T;
-}
-
-/**
  * tRPC response format
  */
 interface TRPCResponse<T = unknown> {
@@ -68,9 +61,10 @@ export function createAPIClient(getToken: () => Promise<string | null>) {
 		const token = await getToken();
 
 		// For GET requests, encode input as query parameter
-		const inputParam = input !== undefined 
-			? `?input=${encodeURIComponent(JSON.stringify(input))}`
-			: "";
+		const inputParam =
+			input !== undefined
+				? `?input=${encodeURIComponent(JSON.stringify(input))}`
+				: "";
 		const url = `${API_URL}/api/trpc/${procedure}${inputParam}`;
 
 		debugLog(`→ GET ${procedure}`, {
@@ -165,15 +159,18 @@ export function createAPIClient(getToken: () => Promise<string | null>) {
 			headers.Authorization = `Bearer ${token}`;
 		}
 
-		const body: TRPCRequestBody<TInput> = {
-			json: input,
-		};
+		const bodyString = JSON.stringify(input);
+
+		// Extra debugging for mutations
+		if (DEBUG_API) {
+			console.log(`[API] ${procedure} mutation body:`, bodyString);
+		}
 
 		try {
 			const response = await fetch(url, {
 				method: "POST",
 				headers,
-				body: JSON.stringify(body),
+				body: bodyString,
 			});
 
 			const data: TRPCResponse<TOutput> = await response.json();

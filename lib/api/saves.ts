@@ -9,9 +9,16 @@ import {
 	useQuery,
 	useQueryClient,
 } from "@tanstack/react-query";
+import { APIError } from "./client";
 import { useAPIClient } from "./hooks";
+import { spaceKeys } from "./space";
 import type {
+	CheckDuplicateInput,
+	CheckDuplicateResponse,
 	CreateSaveInput,
+	DashboardData,
+	DuplicateSaveErrorData,
+	DuplicateSaveInfo,
 	ListSavesInput,
 	ListSavesResponse,
 	Save,
@@ -78,9 +85,9 @@ export function useCreateSave() {
 		onSuccess: () => {
 			// Invalidate saves list to refetch
 			queryClient.invalidateQueries({ queryKey: savesKeys.lists() });
-			// Also invalidate stats
-			queryClient.invalidateQueries({ queryKey: ["stats"] });
-			queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+			// Also invalidate stats and dashboard
+			queryClient.invalidateQueries({ queryKey: spaceKeys.stats() });
+			queryClient.invalidateQueries({ queryKey: spaceKeys.dashboard() });
 		},
 	});
 }
@@ -106,6 +113,7 @@ export function useUpdateSave() {
 
 /**
  * Hook to toggle favorite status
+ * Uses optimistic updates for instant UI feedback
  */
 export function useToggleFavorite() {
 	const client = useAPIClient();
@@ -120,15 +128,73 @@ export function useToggleFavorite() {
 					value,
 				},
 			),
+		onMutate: async ({ saveId, value }) => {
+			// Cancel outgoing refetches so they don't overwrite our optimistic update
+			await queryClient.cancelQueries({ queryKey: savesKeys.lists() });
+			await queryClient.cancelQueries({ queryKey: savesKeys.detail(saveId) });
+
+			// Snapshot previous data for rollback
+			const previousDetail = queryClient.getQueryData<Save>(
+				savesKeys.detail(saveId),
+			);
+			const previousLists = queryClient.getQueriesData<{
+				pages: ListSavesResponse[];
+				pageParams: unknown[];
+			}>({ queryKey: savesKeys.lists() });
+
+			// Optimistically update the detail cache
+			if (previousDetail) {
+				queryClient.setQueryData<Save>(savesKeys.detail(saveId), {
+					...previousDetail,
+					isFavorite: value ?? !previousDetail.isFavorite,
+				});
+			}
+
+			// Optimistically update all list caches
+			queryClient.setQueriesData<{
+				pages: ListSavesResponse[];
+				pageParams: unknown[];
+			}>({ queryKey: savesKeys.lists() }, (old) => {
+				if (!old?.pages) return old;
+				return {
+					...old,
+					pages: old.pages.map((page) => ({
+						...page,
+						items: page.items.map((save) =>
+							save.id === saveId
+								? { ...save, isFavorite: value ?? !save.isFavorite }
+								: save,
+						),
+					})),
+				};
+			});
+
+			return { previousDetail, previousLists };
+		},
+		onError: (_err, { saveId }, context) => {
+			// Rollback to previous data on error
+			if (context?.previousDetail) {
+				queryClient.setQueryData(
+					savesKeys.detail(saveId),
+					context.previousDetail,
+				);
+			}
+			if (context?.previousLists) {
+				for (const [queryKey, data] of context.previousLists) {
+					queryClient.setQueryData(queryKey, data);
+				}
+			}
+		},
 		onSuccess: (data) => {
+			// Sync detail cache with server response (list is already optimistically updated)
 			queryClient.setQueryData(savesKeys.detail(data.id), data);
-			queryClient.invalidateQueries({ queryKey: savesKeys.lists() });
 		},
 	});
 }
 
 /**
  * Hook to toggle archive status
+ * Uses optimistic updates for instant UI feedback
  */
 export function useToggleArchive() {
 	const client = useAPIClient();
@@ -143,9 +209,105 @@ export function useToggleArchive() {
 					value,
 				},
 			),
+		onMutate: async ({ saveId, value }) => {
+			// Cancel outgoing refetches so they don't overwrite our optimistic update
+			await queryClient.cancelQueries({ queryKey: savesKeys.lists() });
+			await queryClient.cancelQueries({ queryKey: savesKeys.detail(saveId) });
+			await queryClient.cancelQueries({ queryKey: spaceKeys.dashboard() });
+
+			// Snapshot previous data for rollback
+			const previousDetail = queryClient.getQueryData<Save>(
+				savesKeys.detail(saveId),
+			);
+			const previousLists = queryClient.getQueriesData<{
+				pages: ListSavesResponse[];
+				pageParams: unknown[];
+			}>({ queryKey: savesKeys.lists() });
+			const previousDashboard = queryClient.getQueryData<DashboardData>(
+				spaceKeys.dashboard(),
+			);
+
+			// Optimistically update the detail cache
+			if (previousDetail) {
+				queryClient.setQueryData<Save>(savesKeys.detail(saveId), {
+					...previousDetail,
+					isArchived: value ?? !previousDetail.isArchived,
+				});
+			}
+
+			// Optimistically update all list caches
+			queryClient.setQueriesData<{
+				pages: ListSavesResponse[];
+				pageParams: unknown[];
+			}>({ queryKey: savesKeys.lists() }, (old) => {
+				if (!old?.pages) return old;
+				return {
+					...old,
+					pages: old.pages.map((page) => ({
+						...page,
+						items: page.items.map((save) =>
+							save.id === saveId
+								? { ...save, isArchived: value ?? !save.isArchived }
+								: save,
+						),
+					})),
+				};
+			});
+
+			// Optimistically update dashboard - remove archived items from recent saves
+			if (previousDashboard) {
+				const isArchiving = value ?? !previousDetail?.isArchived;
+				if (isArchiving) {
+					// Remove from recent saves if archiving
+					queryClient.setQueryData<DashboardData>(spaceKeys.dashboard(), {
+						...previousDashboard,
+						recentSaves: previousDashboard.recentSaves.filter(
+							(save) => save.id !== saveId,
+						),
+						stats: {
+							...previousDashboard.stats,
+							archivedSaves: previousDashboard.stats.archivedSaves + 1,
+						},
+					});
+				} else {
+					// Update the item if unarchiving (it will appear on next refresh)
+					queryClient.setQueryData<DashboardData>(spaceKeys.dashboard(), {
+						...previousDashboard,
+						recentSaves: previousDashboard.recentSaves.map((save) =>
+							save.id === saveId ? { ...save, isArchived: false } : save,
+						),
+						stats: {
+							...previousDashboard.stats,
+							archivedSaves: Math.max(0, previousDashboard.stats.archivedSaves - 1),
+						},
+					});
+				}
+			}
+
+			return { previousDetail, previousLists, previousDashboard };
+		},
+		onError: (_err, { saveId }, context) => {
+			// Rollback to previous data on error
+			if (context?.previousDetail) {
+				queryClient.setQueryData(
+					savesKeys.detail(saveId),
+					context.previousDetail,
+				);
+			}
+			if (context?.previousLists) {
+				for (const [queryKey, data] of context.previousLists) {
+					queryClient.setQueryData(queryKey, data);
+				}
+			}
+			if (context?.previousDashboard) {
+				queryClient.setQueryData(spaceKeys.dashboard(), context.previousDashboard);
+			}
+		},
 		onSuccess: (data) => {
+			// Sync detail cache with server response
 			queryClient.setQueryData(savesKeys.detail(data.id), data);
-			queryClient.invalidateQueries({ queryKey: savesKeys.lists() });
+			// Invalidate dashboard to get fresh data
+			queryClient.invalidateQueries({ queryKey: spaceKeys.dashboard() });
 		},
 	});
 }
@@ -163,13 +325,123 @@ export function useDeleteSave() {
 				"space.deleteSave",
 				{ saveId },
 			),
+		onMutate: async (saveId) => {
+			// Cancel outgoing refetches so they don't overwrite our optimistic update
+			await queryClient.cancelQueries({ queryKey: savesKeys.lists() });
+			await queryClient.cancelQueries({ queryKey: spaceKeys.dashboard() });
+
+			// Snapshot previous list data for rollback
+			const previousLists = queryClient.getQueriesData<{
+				pages: ListSavesResponse[];
+				pageParams: unknown[];
+			}>({ queryKey: savesKeys.lists() });
+
+			// Snapshot previous dashboard data for rollback
+			const previousDashboard = queryClient.getQueryData<DashboardData>(
+				spaceKeys.dashboard(),
+			);
+
+			// Optimistically remove the save from all list caches
+			queryClient.setQueriesData<{
+				pages: ListSavesResponse[];
+				pageParams: unknown[];
+			}>({ queryKey: savesKeys.lists() }, (old) => {
+				if (!old?.pages) return old;
+				return {
+					...old,
+					pages: old.pages.map((page) => ({
+						...page,
+						items: page.items.filter((save) => save.id !== saveId),
+					})),
+				};
+			});
+
+			// Optimistically remove the save from the dashboard cache
+			if (previousDashboard) {
+				const deletedSave = previousDashboard.recentSaves.find(
+					(s) => s.id === saveId,
+				);
+				queryClient.setQueryData<DashboardData>(spaceKeys.dashboard(), {
+					...previousDashboard,
+					recentSaves: previousDashboard.recentSaves.filter(
+						(save) => save.id !== saveId,
+					),
+					stats: {
+						...previousDashboard.stats,
+						totalSaves: Math.max(0, previousDashboard.stats.totalSaves - 1),
+						// Decrement relevant counters if the deleted save had those properties
+						favoriteSaves: deletedSave?.isFavorite
+							? Math.max(0, previousDashboard.stats.favoriteSaves - 1)
+							: previousDashboard.stats.favoriteSaves,
+						publicSaves:
+							deletedSave?.visibility === "public"
+								? Math.max(0, previousDashboard.stats.publicSaves - 1)
+								: previousDashboard.stats.publicSaves,
+						archivedSaves: deletedSave?.isArchived
+							? Math.max(0, previousDashboard.stats.archivedSaves - 1)
+							: previousDashboard.stats.archivedSaves,
+					},
+				});
+			}
+
+			return { previousLists, previousDashboard };
+		},
+		onError: (_err, _saveId, context) => {
+			// Rollback to previous data on error
+			if (context?.previousLists) {
+				for (const [queryKey, data] of context.previousLists) {
+					queryClient.setQueryData(queryKey, data);
+				}
+			}
+			if (context?.previousDashboard) {
+				queryClient.setQueryData(spaceKeys.dashboard(), context.previousDashboard);
+			}
+		},
 		onSuccess: (_, saveId) => {
-			// Remove from cache
+			// Remove detail cache
 			queryClient.removeQueries({ queryKey: savesKeys.detail(saveId) });
-			// Invalidate lists
+			// Invalidate to refetch fresh data in background
 			queryClient.invalidateQueries({ queryKey: savesKeys.lists() });
-			queryClient.invalidateQueries({ queryKey: ["stats"] });
-			queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+			queryClient.invalidateQueries({ queryKey: spaceKeys.stats() });
+			queryClient.invalidateQueries({ queryKey: spaceKeys.dashboard() });
 		},
 	});
+}
+
+/**
+ * Hook to check if a URL is already saved (duplicate detection)
+ */
+export function useCheckDuplicate() {
+	const client = useAPIClient();
+
+	return useMutation({
+		mutationFn: (input: CheckDuplicateInput) =>
+			client.mutate<CheckDuplicateInput, CheckDuplicateResponse>(
+				"space.checkDuplicate",
+				input,
+			),
+	});
+}
+
+/**
+ * Check if an error is a duplicate save error
+ * Returns the existing save info if it is, or null if it's not
+ */
+export function getDuplicateSaveFromError(
+	error: unknown,
+): DuplicateSaveInfo | null {
+	if (!(error instanceof APIError)) {
+		return null;
+	}
+
+	if (error.code !== "CONFLICT" || error.status !== 409) {
+		return null;
+	}
+
+	const data = error.data as DuplicateSaveErrorData | undefined;
+	if (data?.cause?.type !== "DUPLICATE_SAVE") {
+		return null;
+	}
+
+	return data.cause.existingSave;
 }
