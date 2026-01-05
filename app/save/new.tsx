@@ -6,12 +6,21 @@
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Check, ChevronLeft, Link as LinkIcon, X } from "lucide-react-native";
+import {
+	Check,
+	ChevronLeft,
+	Eye,
+	EyeOff,
+	Link as LinkIcon,
+	Sparkles,
+	X,
+} from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	Alert,
 	KeyboardAvoidingView,
 	Platform,
+	Pressable,
 	ScrollView,
 	StyleSheet,
 	Text,
@@ -26,14 +35,22 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { brandColors, radii } from "@/constants/theme";
 import { useThemeColors } from "@/hooks/use-theme-color";
+import { useTheme } from "@/lib/theme/provider";
 import { getDuplicateSaveFromError, useCreateSave } from "@/lib/api/saves";
 import { useMySpace } from "@/lib/api/space";
 import type { DuplicateSaveInfo, SaveVisibility } from "@/lib/api/types";
+
+// Amber text colors optimized for readability
+const amberTextColors = {
+	light: "#9A6B2F", // Darker amber/gold for light backgrounds
+	dark: brandColors.amber, // Regular amber for dark backgrounds
+};
 
 export default function NewSaveScreen() {
 	const router = useRouter();
 	const params = useLocalSearchParams<{ url?: string }>();
 	const colors = useThemeColors();
+	const { colorScheme } = useTheme();
 
 	// Get user's space settings for default visibility
 	const { data: space } = useMySpace();
@@ -276,6 +293,34 @@ export default function NewSaveScreen() {
 						</CardContent>
 					</Card>
 
+					{/* Auto-processing info banner */}
+					<View
+						style={[
+							styles.infoBanner,
+							{
+								backgroundColor:
+									colorScheme === "dark"
+										? `${brandColors.amber}15`
+										: `${brandColors.amber}20`,
+							},
+						]}
+					>
+						<Sparkles
+							size={16}
+							color={brandColors.amber}
+							style={styles.infoBannerIcon}
+						/>
+						<Text
+							style={[
+								styles.infoBannerText,
+								{ color: amberTextColors[colorScheme] },
+							]}
+						>
+							We'll automatically fetch the page title, description, preview
+							image, and article content for reader mode.
+						</Text>
+					</View>
+
 					{/* Title (optional) */}
 					<Card style={styles.section}>
 						<CardContent style={styles.sectionContent}>
@@ -288,7 +333,8 @@ export default function NewSaveScreen() {
 								onChangeText={setTitle}
 							/>
 							<Text style={[styles.hint, { color: colors.mutedForeground }]}>
-								Leave empty to use the page title
+								Override the auto-fetched title, or leave empty to use what we
+								find
 							</Text>
 						</CardContent>
 					</Card>
@@ -300,47 +346,76 @@ export default function NewSaveScreen() {
 								Visibility
 							</Text>
 							<View style={styles.visibilityOptions}>
-								{(["private", "public"] as SaveVisibility[]).map((v) => {
-									const isSelected = visibility === v;
+								{(
+									[
+										{
+											value: "private",
+											label: "Private",
+											icon: EyeOff,
+											hint: "Only you can see this",
+										},
+										{
+											value: "public",
+											label: "Public",
+											icon: Eye,
+											hint: "Visible on your public space",
+										},
+									] as const
+								).map((option) => {
+									const isSelected = visibility === option.value;
+									const Icon = option.icon;
 									return (
-										<TouchableOpacity
-											key={v}
+										<Pressable
+											key={option.value}
 											style={[
 												styles.visibilityOption,
 												{
 													borderColor: isSelected
-														? brandColors.rust.DEFAULT
+														? brandColors.amber
 														: colors.border,
 													backgroundColor: isSelected
-														? `${brandColors.rust.DEFAULT}12`
-														: "transparent",
+														? brandColors.amber
+														: colors.muted,
 												},
 											]}
 											onPress={() => {
+												Haptics.selectionAsync();
 												userChangedVisibility.current = true;
-												setVisibility(v);
+												setVisibility(option.value);
 											}}
-											activeOpacity={0.7}
 										>
+											<Icon
+												size={16}
+												color={
+													isSelected ? "#141D22" : colors.mutedForeground
+												}
+											/>
 											<Text
 												style={[
 													styles.visibilityText,
 													{
-														color: isSelected
-															? brandColors.rust.DEFAULT
-															: colors.text,
-														fontFamily: isSelected
-															? "DMSans-Bold"
-															: "DMSans-Medium",
+														color: isSelected ? "#141D22" : colors.text,
 													},
 												]}
 											>
-												{v.charAt(0).toUpperCase() + v.slice(1)}
+												{option.label}
 											</Text>
-										</TouchableOpacity>
+											{isSelected && (
+												<Check
+													size={14}
+													color="#141D22"
+													style={{ marginLeft: 2 }}
+												/>
+											)}
+										</Pressable>
 									);
 								})}
 							</View>
+							<Text style={[styles.hint, { color: colors.mutedForeground }]}>
+								{visibility === "private"
+									? "Only you can see this"
+									: "Visible on your public space"}
+							</Text>
 						</CardContent>
 					</Card>
 
@@ -394,6 +469,9 @@ export default function NewSaveScreen() {
 									))}
 								</View>
 							)}
+							<Text style={[styles.hint, { color: colors.mutedForeground }]}>
+								New tags are created automatically
+							</Text>
 						</CardContent>
 					</Card>
 
@@ -435,7 +513,7 @@ const styles = StyleSheet.create({
 	},
 	// URL Card - special styling for the primary input
 	urlCard: {
-		marginBottom: 24,
+		marginBottom: 16,
 	},
 	urlCardContent: {
 		padding: 16,
@@ -455,6 +533,24 @@ const styles = StyleSheet.create({
 	},
 	urlInputContainer: {
 		flex: 1,
+	},
+	// Info banner
+	infoBanner: {
+		flexDirection: "row",
+		alignItems: "flex-start",
+		padding: 14,
+		borderRadius: radii.md,
+		marginBottom: 20,
+	},
+	infoBannerIcon: {
+		marginRight: 10,
+		marginTop: 2,
+	},
+	infoBannerText: {
+		flex: 1,
+		fontSize: 13,
+		fontFamily: "DMSans",
+		lineHeight: 19,
 	},
 	// Regular sections
 	section: {
@@ -479,17 +575,23 @@ const styles = StyleSheet.create({
 	// Visibility options
 	visibilityOptions: {
 		flexDirection: "row",
-		gap: 12,
+		gap: 10,
 	},
 	visibilityOption: {
 		flex: 1,
-		paddingVertical: 14,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 6,
+		paddingVertical: 12,
+		paddingHorizontal: 14,
 		borderWidth: 1.5,
 		borderRadius: radii.md,
-		alignItems: "center",
 	},
 	visibilityText: {
-		fontSize: 15,
+		fontSize: 14,
+		fontFamily: "DMSans-Medium",
+		fontWeight: "500",
 	},
 	// Tags
 	tagInputRow: {

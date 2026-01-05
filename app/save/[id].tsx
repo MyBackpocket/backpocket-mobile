@@ -64,57 +64,86 @@ interface VisibilitySelectorProps {
 	value: SaveVisibility;
 	onChange: (value: SaveVisibility) => void;
 	colors: ReturnType<typeof useThemeColors>;
+	showHint?: boolean;
 }
 
 function VisibilitySelector({
 	value,
 	onChange,
 	colors,
+	showHint = true,
 }: VisibilitySelectorProps) {
-	const options: { value: SaveVisibility; label: string; icon: typeof Eye }[] =
-		[
-			{ value: "private", label: "Private", icon: EyeOff },
-			{ value: "public", label: "Public", icon: Eye },
-		];
+	const options: {
+		value: SaveVisibility;
+		label: string;
+		icon: typeof Eye;
+		hint: string;
+	}[] = [
+		{
+			value: "private",
+			label: "Private",
+			icon: EyeOff,
+			hint: "Only you can see this",
+		},
+		{
+			value: "public",
+			label: "Public",
+			icon: Eye,
+			hint: "Visible on your public space",
+		},
+	];
+
+	const selectedOption = options.find((o) => o.value === value);
 
 	return (
-		<View style={visibilityStyles.container}>
-			{options.map((option) => {
-				const isSelected = value === option.value;
-				const Icon = option.icon;
-				return (
-					<Pressable
-						key={option.value}
-						onPress={() => {
-							Haptics.selectionAsync();
-							onChange(option.value);
-						}}
-						style={[
-							visibilityStyles.option,
-							{
-								backgroundColor: isSelected ? brandColors.amber : colors.muted,
-								borderColor: isSelected ? brandColors.amber : colors.border,
-							},
-						]}
-					>
-						<Icon
-							size={16}
-							color={isSelected ? "#141D22" : colors.mutedForeground}
-						/>
-						<Text
+		<View>
+			<View style={visibilityStyles.container}>
+				{options.map((option) => {
+					const isSelected = value === option.value;
+					const Icon = option.icon;
+					return (
+						<Pressable
+							key={option.value}
+							onPress={() => {
+								Haptics.selectionAsync();
+								onChange(option.value);
+							}}
 							style={[
-								visibilityStyles.optionText,
-								{ color: isSelected ? "#141D22" : colors.text },
+								visibilityStyles.option,
+								{
+									backgroundColor: isSelected
+										? brandColors.amber
+										: colors.muted,
+									borderColor: isSelected ? brandColors.amber : colors.border,
+								},
 							]}
 						>
-							{option.label}
-						</Text>
-						{isSelected && (
-							<Check size={14} color="#141D22" style={{ marginLeft: 2 }} />
-						)}
-					</Pressable>
-				);
-			})}
+							<Icon
+								size={16}
+								color={isSelected ? "#141D22" : colors.mutedForeground}
+							/>
+							<Text
+								style={[
+									visibilityStyles.optionText,
+									{ color: isSelected ? "#141D22" : colors.text },
+								]}
+							>
+								{option.label}
+							</Text>
+							{isSelected && (
+								<Check size={14} color="#141D22" style={{ marginLeft: 2 }} />
+							)}
+						</Pressable>
+					);
+				})}
+			</View>
+			{showHint && selectedOption && (
+				<Text
+					style={[visibilityStyles.hint, { color: colors.mutedForeground }]}
+				>
+					{selectedOption.hint}
+				</Text>
+			)}
 		</View>
 	);
 }
@@ -139,6 +168,12 @@ const visibilityStyles = StyleSheet.create({
 		fontSize: 14,
 		fontFamily: "DMSans-Medium",
 		fontWeight: "500",
+	},
+	hint: {
+		fontSize: 13,
+		fontFamily: "DMSans",
+		marginTop: 10,
+		lineHeight: 18,
 	},
 });
 
@@ -1156,15 +1191,15 @@ export default function SaveDetailScreen() {
 				</Card>
 
 				{/* Tags */}
-				{save.tags && save.tags.length > 0 && (
-					<Card style={styles.section}>
-						<CardContent style={styles.sectionContent}>
-							<View style={styles.sectionHeader}>
-								<Tag size={18} color={colors.mutedForeground} />
-								<Text style={[styles.sectionTitle, { color: colors.text }]}>
-									Tags
-								</Text>
-							</View>
+				<Card style={styles.section}>
+					<CardContent style={styles.sectionContent}>
+						<View style={styles.sectionHeader}>
+							<Tag size={18} color={colors.mutedForeground} />
+							<Text style={[styles.sectionTitle, { color: colors.text }]}>
+								Tags
+							</Text>
+						</View>
+						{save.tags && save.tags.length > 0 ? (
 							<View style={styles.tags}>
 								{save.tags.map((tag) => (
 									<View
@@ -1185,20 +1220,26 @@ export default function SaveDetailScreen() {
 									</View>
 								))}
 							</View>
-						</CardContent>
-					</Card>
-				)}
+						) : (
+							<Text
+								style={[styles.emptyText, { color: colors.mutedForeground }]}
+							>
+								No tags added
+							</Text>
+						)}
+					</CardContent>
+				</Card>
 
 				{/* Collections */}
-				{save.collections && save.collections.length > 0 && (
-					<Card style={styles.section}>
-						<CardContent style={styles.sectionContent}>
-							<View style={styles.sectionHeader}>
-								<FolderOpen size={18} color={colors.mutedForeground} />
-								<Text style={[styles.sectionTitle, { color: colors.text }]}>
-									Collections
-								</Text>
-							</View>
+				<Card style={styles.section}>
+					<CardContent style={styles.sectionContent}>
+						<View style={styles.sectionHeader}>
+							<FolderOpen size={18} color={colors.mutedForeground} />
+							<Text style={[styles.sectionTitle, { color: colors.text }]}>
+								Collections
+							</Text>
+						</View>
+						{save.collections && save.collections.length > 0 ? (
 							<View style={styles.collections}>
 								{save.collections.map((collection) => (
 									<View
@@ -1217,9 +1258,15 @@ export default function SaveDetailScreen() {
 									</View>
 								))}
 							</View>
-						</CardContent>
-					</Card>
-				)}
+						) : (
+							<Text
+								style={[styles.emptyText, { color: colors.mutedForeground }]}
+							>
+								Not in any collections
+							</Text>
+						)}
+					</CardContent>
+				</Card>
 
 				{/* Actions Zone */}
 				<View style={styles.actionsZone}>
@@ -1403,6 +1450,11 @@ const styles = StyleSheet.create({
 	collectionText: {
 		fontSize: 14,
 		fontFamily: "DMSans-Medium",
+	},
+	emptyText: {
+		fontSize: 14,
+		fontFamily: "DMSans",
+		fontStyle: "italic",
 	},
 	actionsZone: {
 		marginHorizontal: 16,
