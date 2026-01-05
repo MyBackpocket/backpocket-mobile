@@ -11,6 +11,7 @@ import {
 	Heart,
 	Plus,
 } from "lucide-react-native";
+import { useCallback, useState } from "react";
 import {
 	Alert,
 	Image,
@@ -24,12 +25,14 @@ import {
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
+import { ProcessingBadge } from "@/components/ui/processing-badge";
 import { SwipeableRow } from "@/components/ui/swipeable-row";
 import { brandColors, radii } from "@/constants/theme";
 import { useThemeColors } from "@/hooks/use-theme-color";
 import { useDeleteSave, useToggleArchive, useToggleFavorite } from "@/lib/api/saves";
 import { useDashboard } from "@/lib/api/space";
 import type { Save } from "@/lib/api/types";
+import { isSaveProcessing } from "@/lib/api/use-processing-saves";
 
 export default function DashboardScreen() {
 	const colors = useThemeColors();
@@ -41,14 +44,31 @@ export default function DashboardScreen() {
 	const userName = user?.firstName || "there";
 	const userImageUrl = user?.imageUrl;
 
-	// Fetch dashboard data
+	// Track manual refresh separately from background polling
+	const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+
+	// Fetch dashboard data (auto-polls when there are processing saves)
 	const {
 		data: dashboard,
 		isLoading,
 		isError,
 		refetch,
-		isRefetching,
 	} = useDashboard();
+
+	// Filter out archived items from recent saves - they shouldn't appear here
+	const recentSaves = (dashboard?.recentSaves || []).filter(
+		(save) => !save.isArchived,
+	);
+
+	// Manual refresh handler - shows spinner only for user-initiated refreshes
+	const handleManualRefresh = useCallback(async () => {
+		setIsManualRefreshing(true);
+		try {
+			await refetch();
+		} finally {
+			setIsManualRefreshing(false);
+		}
+	}, [refetch]);
 
 	// Mutations for swipe actions
 	const deleteSave = useDeleteSave();
@@ -56,10 +76,6 @@ export default function DashboardScreen() {
 	const toggleFavorite = useToggleFavorite();
 
 	const stats = dashboard?.stats;
-	// Filter out archived items from recent saves - they shouldn't appear here
-	const recentSaves = (dashboard?.recentSaves || []).filter(
-		(save) => !save.isArchived
-	);
 
 	const handleDeleteSave = (saveId: string) => {
 		deleteSave.mutate(saveId);
@@ -84,8 +100,8 @@ export default function DashboardScreen() {
 			showsVerticalScrollIndicator={false}
 			refreshControl={
 				<RefreshControl
-					refreshing={isRefetching}
-					onRefresh={refetch}
+					refreshing={isManualRefreshing}
+					onRefresh={handleManualRefresh}
 					tintColor={brandColors.rust.DEFAULT}
 				/>
 			}
@@ -391,9 +407,17 @@ function SaveListItem({
 					},
 				]}
 			>
-				<View style={[styles.saveIcon, { backgroundColor: colors.muted }]}>
-					<Bookmark size={18} color={colors.mutedForeground} />
-				</View>
+				{save.imageUrl ? (
+					<Image
+						source={{ uri: save.imageUrl }}
+						style={styles.saveThumbnail}
+						resizeMode="cover"
+					/>
+				) : (
+					<View style={[styles.saveIcon, { backgroundColor: colors.muted }]}>
+						<Bookmark size={18} color={colors.mutedForeground} />
+					</View>
+				)}
 				<View style={styles.saveContent}>
 					<Text
 						style={[styles.saveTitle, { color: colors.text }]}
@@ -408,6 +432,7 @@ function SaveListItem({
 						{save.siteName || new URL(save.url).hostname}
 					</Text>
 				</View>
+				{isSaveProcessing(save) && <ProcessingBadge size="sm" />}
 				<TouchableOpacity
 					onPress={handleOpenUrl}
 					style={styles.saveAction}
@@ -590,6 +615,11 @@ const styles = StyleSheet.create({
 		borderRadius: radii.md,
 		alignItems: "center",
 		justifyContent: "center",
+	},
+	saveThumbnail: {
+		width: 44,
+		height: 44,
+		borderRadius: radii.md,
 	},
 	saveContent: {
 		flex: 1,

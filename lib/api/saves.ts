@@ -24,6 +24,10 @@ import type {
 	Save,
 	UpdateSaveInput,
 } from "./types";
+import {
+	hasProcessingSaves,
+	PROCESSING_POLL_INTERVAL_MS,
+} from "./use-processing-saves";
 
 // Query keys
 export const savesKeys = {
@@ -36,6 +40,9 @@ export const savesKeys = {
 
 /**
  * Hook to fetch a paginated list of saves
+ *
+ * Automatically polls for updates when there are recently created saves
+ * that are still being processed by the backend.
  */
 export function useListSaves(input: ListSavesInput = {}) {
 	const client = useAPIClient();
@@ -53,11 +60,24 @@ export function useListSaves(input: ListSavesInput = {}) {
 		},
 		initialPageParam: undefined as string | undefined,
 		getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+		// Auto-poll when there are processing saves
+		refetchInterval: (query) => {
+			const pages = query.state.data?.pages;
+			if (!pages) return false;
+			// Only check first page for processing saves (most recent)
+			const firstPageSaves = pages[0]?.items ?? [];
+			return hasProcessingSaves(firstPageSaves)
+				? PROCESSING_POLL_INTERVAL_MS
+				: false;
+		},
 	});
 }
 
 /**
  * Hook to fetch a single save by ID
+ *
+ * Automatically polls for updates when the save is still being processed
+ * by the backend (no title yet).
  */
 export function useGetSave(saveId: string) {
 	const client = useAPIClient();
@@ -69,6 +89,16 @@ export function useGetSave(saveId: string) {
 				saveId,
 			}),
 		enabled: !!saveId,
+		// Auto-poll when the save is still processing
+		refetchInterval: (query) => {
+			const save = query.state.data;
+			if (!save) return false;
+			// Import check inline to avoid circular deps
+			const isProcessing =
+				save.title === null &&
+				Date.now() - new Date(save.createdAt).getTime() < 60000;
+			return isProcessing ? PROCESSING_POLL_INTERVAL_MS : false;
+		},
 	});
 }
 
@@ -434,14 +464,22 @@ export function getDuplicateSaveFromError(
 		return null;
 	}
 
-	if (error.code !== "CONFLICT" || error.status !== 409) {
-		return null;
-	}
-
+	// The API returns:
+	// - error.code = JSON-RPC error code (e.g., -32009)
+	// - error.status = HTTP status (409)
+	// - error.data = { code: "CONFLICT", httpStatus: 409, cause: { type: "DUPLICATE_SAVE", existingSave: {...} } }
 	const data = error.data as DuplicateSaveErrorData | undefined;
-	if (data?.cause?.type !== "DUPLICATE_SAVE") {
-		return null;
+
+	// Check for structured duplicate error data
+	if (
+		error.status === 409 ||
+		data?.code === "CONFLICT" ||
+		data?.httpStatus === 409
+	) {
+		if (data?.cause?.type === "DUPLICATE_SAVE" && data.cause.existingSave) {
+			return data.cause.existingSave;
+		}
 	}
 
-	return data.cause.existingSave;
+	return null;
 }

@@ -28,6 +28,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ProcessingBadge } from "@/components/ui/processing-badge";
 import { brandColors, radii } from "@/constants/theme";
 import { useThemeColors } from "@/hooks/use-theme-color";
 import {
@@ -36,6 +37,7 @@ import {
 	useToggleFavorite,
 } from "@/lib/api/saves";
 import type { ListSavesInput, Save } from "@/lib/api/types";
+import { isSaveProcessing } from "@/lib/api/use-processing-saves";
 
 type FilterType = "all" | "favorites" | "public";
 
@@ -70,12 +72,14 @@ export default function SavesScreen() {
 		return params;
 	}, [activeFilter]);
 
+	// Track manual refresh separately from background polling
+	const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+
 	const {
 		data,
 		isPending,
 		isError,
 		refetch,
-		isRefetching,
 		fetchNextPage,
 		hasNextPage,
 		isFetchingNextPage,
@@ -84,6 +88,16 @@ export default function SavesScreen() {
 	const clearFilter = useCallback(() => {
 		router.setParams({ filter: undefined });
 	}, [router]);
+
+	// Manual refresh handler - shows spinner only for user-initiated refreshes
+	const handleManualRefresh = useCallback(async () => {
+		setIsManualRefreshing(true);
+		try {
+			await refetch();
+		} finally {
+			setIsManualRefreshing(false);
+		}
+	}, [refetch]);
 
 	const handleFilterSelect = useCallback((filterValue: FilterType) => {
 		Haptics.selectionAsync();
@@ -400,8 +414,8 @@ export default function SavesScreen() {
 				onEndReachedThreshold={0.5}
 				refreshControl={
 					<RefreshControl
-						refreshing={isRefetching}
-						onRefresh={refetch}
+						refreshing={isManualRefreshing}
+						onRefresh={handleManualRefresh}
 						tintColor={brandColors.rust.DEFAULT}
 					/>
 				}
@@ -461,6 +475,7 @@ function SaveCard({
 						>
 							{save.siteName || new URL(save.url).hostname}
 						</Text>
+						{isSaveProcessing(save) && <ProcessingBadge size="sm" />}
 						{save.visibility === "public" && (
 							<View
 								style={[

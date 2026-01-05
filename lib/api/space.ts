@@ -14,6 +14,10 @@ import type {
 	SpaceSettingsInput,
 	StatsResponse,
 } from "./types";
+import {
+	hasProcessingSaves,
+	PROCESSING_POLL_INTERVAL_MS,
+} from "./use-processing-saves";
 
 // Query keys
 export const spaceKeys = {
@@ -40,6 +44,9 @@ export function useMySpace() {
 
 /**
  * Hook to fetch dashboard data (stats + recent saves + space)
+ *
+ * Automatically polls for updates when there are recently created saves
+ * that are still being processed by the backend.
  */
 export function useDashboard() {
 	const client = useAPIClient();
@@ -47,6 +54,14 @@ export function useDashboard() {
 	return useQuery({
 		queryKey: spaceKeys.dashboard(),
 		queryFn: () => client.query<void, DashboardData>("space.getDashboardData"),
+		// Auto-poll when there are processing saves
+		refetchInterval: (query) => {
+			const data = query.state.data;
+			if (!data?.recentSaves) return false;
+			return hasProcessingSaves(data.recentSaves)
+				? PROCESSING_POLL_INTERVAL_MS
+				: false;
+		},
 	});
 }
 

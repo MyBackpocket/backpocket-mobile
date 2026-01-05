@@ -13,11 +13,11 @@ import { useShareIntent } from "expo-share-intent";
 import {
 	Bookmark,
 	Check,
-	Copy,
 	ExternalLink,
 	Globe,
 	Lock,
 	LogIn,
+	Pencil,
 	Plus,
 	RefreshCw,
 	Unlock,
@@ -704,12 +704,10 @@ export default function ShareScreen() {
 				resetShareIntent();
 			})
 			.catch((error: unknown) => {
-				console.error("[share] Save failed:", error);
-
-				// Check if this is a duplicate save error
+				// Check if this is a duplicate save error first
 				const existingSave = getDuplicateSaveFromError(error);
 				if (existingSave) {
-					console.log("[share] Duplicate detected:", existingSave.id);
+					console.log("[share] Duplicate detected:", existingSave.id || "(no ID)");
 					setDuplicateSave(existingSave);
 					setStatus("duplicate");
 					Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -717,6 +715,8 @@ export default function ShareScreen() {
 					return;
 				}
 
+				// Only log as error if it's an actual error (not a duplicate)
+				console.error("[share] Save failed:", error);
 				setStatus("error");
 				setErrorMessage(
 					error instanceof Error ? error.message : "Failed to save link",
@@ -773,6 +773,31 @@ export default function ShareScreen() {
 	};
 
 	/**
+	 * View a specific existing save (for duplicates)
+	 */
+	const handleViewExistingSave = () => {
+		if (duplicateSave?.id) {
+			router.replace(`/save/${duplicateSave.id}`);
+		} else {
+			// Fallback to saves list if we don't have the ID
+			router.replace("/(tabs)/saves");
+		}
+	};
+
+	/**
+	 * Edit a specific existing save (for duplicates)
+	 */
+	const handleEditExistingSave = () => {
+		if (duplicateSave?.id) {
+			// Navigate to save detail which allows editing
+			router.replace(`/save/${duplicateSave.id}`);
+		} else {
+			// Fallback to saves list if we don't have the ID
+			router.replace("/(tabs)/saves");
+		}
+	};
+
+	/**
 	 * Retry save - user explicitly clicked retry
 	 */
 	const handleRetry = () => {
@@ -806,12 +831,10 @@ export default function ShareScreen() {
 				}
 			})
 			.catch((error: unknown) => {
-				console.error("[share] Retry save failed:", error);
-
-				// Check if this is a duplicate save error
+				// Check if this is a duplicate save error first
 				const existingSave = getDuplicateSaveFromError(error);
 				if (existingSave) {
-					console.log("[share] Duplicate detected on retry:", existingSave.id);
+					console.log("[share] Duplicate detected on retry:", existingSave.id || "(no ID)");
 					setDuplicateSave(existingSave);
 					setStatus("duplicate");
 					Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -821,6 +844,8 @@ export default function ShareScreen() {
 					return;
 				}
 
+				// Only log as error if it's an actual error (not a duplicate)
+				console.error("[share] Retry save failed:", error);
 				setStatus("error");
 				setErrorMessage(
 					error instanceof Error ? error.message : "Failed to save link",
@@ -1029,35 +1054,36 @@ export default function ShareScreen() {
 						</View>
 					)}
 
-					{/* Duplicate State */}
-					{status === "duplicate" && duplicateSave && (
-						<View style={styles.statusContainer}>
-							<View
-								style={[
-									styles.duplicateIconContainer,
-									{ backgroundColor: `${brandColors.denim.DEFAULT}15` },
-								]}
-							>
-								<Copy
-									size={28}
-									color={brandColors.denim.DEFAULT}
-									strokeWidth={2}
-								/>
-							</View>
-							<Text style={[styles.title, { color: colors.text }]}>
-								Already saved!
-							</Text>
-							<Text
-								style={[styles.subtitle, { color: colors.mutedForeground }]}
-							>
-								You saved this link {formatRelativeTime(duplicateSave.savedAt)}
-							</Text>
+				{/* Duplicate State */}
+				{status === "duplicate" && duplicateSave && (
+					<View style={styles.statusContainer}>
+						<View
+							style={[
+								styles.successIconContainer,
+								{ backgroundColor: brandColors.denim.DEFAULT },
+							]}
+						>
+							<Bookmark size={32} color="#FFFFFF" strokeWidth={2} fill="#FFFFFF" />
+						</View>
+						<Text style={[styles.title, { color: colors.text }]}>
+							Already in your pocket!
+						</Text>
+						<Text
+							style={[styles.subtitle, { color: colors.mutedForeground }]}
+						>
+							{duplicateSave.id
+								? `You saved this ${formatRelativeTime(duplicateSave.savedAt)}`
+								: "This link is already in your saves"}
+						</Text>
 
-							{/* Existing save preview */}
-							<View
-								style={[
+						{/* Existing save preview - only show if we have details */}
+						{(duplicateSave.title || duplicateSave.siteName || duplicateSave.url) && duplicateSave.id && (
+							<Pressable
+								onPress={handleViewExistingSave}
+								style={({ pressed }) => [
 									styles.duplicatePreview,
 									{ backgroundColor: colors.muted, borderColor: colors.border },
+									pressed && { opacity: 0.8 },
 								]}
 							>
 								{duplicateSave.siteName && (
@@ -1077,51 +1103,98 @@ export default function ShareScreen() {
 								>
 									{duplicateSave.title || extractDomain(duplicateSave.url)}
 								</Text>
-							</View>
+							</Pressable>
+						)}
 
-							{/* Actions */}
-							<View style={styles.actions}>
-								<Pressable
-									onPress={handleViewSave}
-									style={({ pressed }) => [
-										styles.primaryButton,
-										{ backgroundColor: colors.primary },
-										pressed && styles.buttonPressed,
-									]}
-								>
-									<ExternalLink size={18} color={colors.primaryForeground} />
-									<Text
-										style={[
-											styles.primaryButtonText,
-											{ color: colors.primaryForeground },
+						{/* Actions */}
+						<View style={styles.actions}>
+							{duplicateSave.id ? (
+								<>
+									<Pressable
+										onPress={handleViewExistingSave}
+										style={({ pressed }) => [
+											styles.primaryButton,
+											{ backgroundColor: colors.primary },
+											pressed && styles.buttonPressed,
 										]}
 									>
-										View Saves
-									</Text>
-								</Pressable>
-								<Pressable
-									onPress={handleClose}
-									style={({ pressed }) => [
-										styles.secondaryButton,
-										{
-											backgroundColor: "transparent",
-											borderColor: colors.border,
-										},
-										pressed && styles.buttonPressed,
-									]}
-								>
-									<Text
-										style={[
-											styles.secondaryButtonText,
-											{ color: colors.mutedForeground },
+										<ExternalLink size={18} color={colors.primaryForeground} />
+										<Text
+											style={[
+												styles.primaryButtonText,
+												{ color: colors.primaryForeground },
+											]}
+										>
+											View Save
+										</Text>
+									</Pressable>
+									<Pressable
+										onPress={handleEditExistingSave}
+										style={({ pressed }) => [
+											styles.secondaryButton,
+											{
+												backgroundColor: colors.secondary,
+												borderColor: colors.border,
+											},
+											pressed && styles.buttonPressed,
 										]}
 									>
-										Got it
-									</Text>
-								</Pressable>
-							</View>
+										<Pencil size={16} color={colors.secondaryForeground} />
+										<Text
+											style={[
+												styles.secondaryButtonText,
+												{ color: colors.secondaryForeground },
+											]}
+										>
+											Edit Save
+										</Text>
+									</Pressable>
+								</>
+							) : (
+								<>
+									<Pressable
+										onPress={handleViewSave}
+										style={({ pressed }) => [
+											styles.primaryButton,
+											{ backgroundColor: colors.primary },
+											pressed && styles.buttonPressed,
+										]}
+									>
+										<ExternalLink size={18} color={colors.primaryForeground} />
+										<Text
+											style={[
+												styles.primaryButtonText,
+												{ color: colors.primaryForeground },
+											]}
+										>
+											View Saves
+										</Text>
+									</Pressable>
+									<Pressable
+										onPress={handleClose}
+										style={({ pressed }) => [
+											styles.secondaryButton,
+											{
+												backgroundColor: "transparent",
+												borderColor: colors.border,
+											},
+											pressed && styles.buttonPressed,
+										]}
+									>
+										<Text
+											style={[
+												styles.secondaryButtonText,
+												{ color: colors.mutedForeground },
+											]}
+										>
+											Got it
+										</Text>
+									</Pressable>
+								</>
+							)}
 						</View>
-					)}
+					</View>
+				)}
 
 					{/* Error State */}
 					{status === "error" && (
@@ -1394,6 +1467,7 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
+		gap: 8,
 		paddingVertical: 12,
 		paddingHorizontal: 20,
 		borderRadius: radii.md,

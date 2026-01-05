@@ -43,6 +43,7 @@ import {
 	useToggleArchive,
 	useToggleFavorite,
 } from "@/lib/api/saves";
+import { isSaveProcessing } from "@/lib/api/use-processing-saves";
 
 export default function SaveDetailScreen() {
 	const { id } = useLocalSearchParams<{ id: string }>();
@@ -205,6 +206,69 @@ export default function SaveDetailScreen() {
 					<Button onPress={() => router.back()} style={{ marginTop: 16 }}>
 						Go Back
 					</Button>
+				</View>
+			</>
+		);
+	}
+
+	// Show processing state while the backend is fetching metadata
+	if (isSaveProcessing(save)) {
+		return (
+			<>
+				<Stack.Screen
+					options={{
+						title: new URL(save.url).hostname,
+						headerLeft: () => (
+							<TouchableOpacity
+								onPress={() => router.back()}
+								style={styles.headerButton}
+							>
+								<ChevronLeft size={24} color={colors.text} />
+							</TouchableOpacity>
+						),
+						headerRight: () => (
+							<TouchableOpacity
+								onPress={handleOpenUrl}
+								style={styles.headerButton}
+							>
+								<ExternalLink size={20} color={colors.text} />
+							</TouchableOpacity>
+						),
+					}}
+				/>
+				<View
+					style={[
+						styles.container,
+						styles.centered,
+						{ backgroundColor: colors.background },
+					]}
+				>
+					<View style={styles.processingContainer}>
+						<ActivityIndicator
+							size="large"
+							color={brandColors.amber}
+							style={styles.processingSpinner}
+						/>
+						<Text style={[styles.processingTitle, { color: colors.text }]}>
+							Processing Save
+						</Text>
+						<Text
+							style={[
+								styles.processingDescription,
+								{ color: colors.mutedForeground },
+							]}
+						>
+							Fetching title, description, and preview image...
+						</Text>
+						<TouchableOpacity onPress={handleOpenUrl} style={styles.processingUrlContainer}>
+							<Text
+								style={[styles.processingUrl, { color: brandColors.rust.DEFAULT }]}
+								numberOfLines={2}
+							>
+								{save.url}
+							</Text>
+						</TouchableOpacity>
+					</View>
 				</View>
 			</>
 		);
@@ -623,6 +687,37 @@ const styles = StyleSheet.create({
 	},
 	errorText: {
 		fontSize: 16,
+		fontFamily: "DMSans",
+		textAlign: "center",
+	},
+	processingContainer: {
+		alignItems: "center",
+		paddingHorizontal: 32,
+	},
+	processingSpinner: {
+		marginBottom: 24,
+	},
+	processingTitle: {
+		fontSize: 20,
+		fontFamily: "DMSans-Bold",
+		fontWeight: "700",
+		marginBottom: 8,
+	},
+	processingDescription: {
+		fontSize: 15,
+		fontFamily: "DMSans",
+		textAlign: "center",
+		lineHeight: 22,
+		marginBottom: 20,
+	},
+	processingUrlContainer: {
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		borderRadius: radii.md,
+		backgroundColor: "rgba(255, 255, 255, 0.05)",
+	},
+	processingUrl: {
+		fontSize: 14,
 		fontFamily: "DMSans",
 		textAlign: "center",
 	},

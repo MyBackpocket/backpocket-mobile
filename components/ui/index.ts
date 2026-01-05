@@ -12,4 +12,5 @@ export {
 export { Icon, type IconProps, IconSizes } from "./icon";
 export { Input } from "./input";
 export { Logo, LogoIcon } from "./logo";
+export { ProcessingBadge } from "./processing-badge";
 export { SwipeableRow } from "./swipeable-row";
