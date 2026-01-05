@@ -707,7 +707,10 @@ export default function ShareScreen() {
 				// Check if this is a duplicate save error first
 				const existingSave = getDuplicateSaveFromError(error);
 				if (existingSave) {
-					console.log("[share] Duplicate detected:", existingSave.id || "(no ID)");
+					console.log(
+						"[share] Duplicate detected:",
+						existingSave.id || "(no ID)",
+					);
 					setDuplicateSave(existingSave);
 					setStatus("duplicate");
 					Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -834,7 +837,10 @@ export default function ShareScreen() {
 				// Check if this is a duplicate save error first
 				const existingSave = getDuplicateSaveFromError(error);
 				if (existingSave) {
-					console.log("[share] Duplicate detected on retry:", existingSave.id || "(no ID)");
+					console.log(
+						"[share] Duplicate detected on retry:",
+						existingSave.id || "(no ID)",
+					);
 					setDuplicateSave(existingSave);
 					setStatus("duplicate");
 					Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -1054,147 +1060,164 @@ export default function ShareScreen() {
 						</View>
 					)}
 
-				{/* Duplicate State */}
-				{status === "duplicate" && duplicateSave && (
-					<View style={styles.statusContainer}>
-						<View
-							style={[
-								styles.successIconContainer,
-								{ backgroundColor: brandColors.denim.DEFAULT },
-							]}
-						>
-							<Bookmark size={32} color="#FFFFFF" strokeWidth={2} fill="#FFFFFF" />
-						</View>
-						<Text style={[styles.title, { color: colors.text }]}>
-							Already in your pocket!
-						</Text>
-						<Text
-							style={[styles.subtitle, { color: colors.mutedForeground }]}
-						>
-							{duplicateSave.id
-								? `You saved this ${formatRelativeTime(duplicateSave.savedAt)}`
-								: "This link is already in your saves"}
-						</Text>
-
-						{/* Existing save preview - only show if we have details */}
-						{(duplicateSave.title || duplicateSave.siteName || duplicateSave.url) && duplicateSave.id && (
-							<Pressable
-								onPress={handleViewExistingSave}
-								style={({ pressed }) => [
-									styles.duplicatePreview,
-									{ backgroundColor: colors.muted, borderColor: colors.border },
-									pressed && { opacity: 0.8 },
+					{/* Duplicate State */}
+					{status === "duplicate" && duplicateSave && (
+						<View style={styles.statusContainer}>
+							<View
+								style={[
+									styles.successIconContainer,
+									{ backgroundColor: brandColors.denim.DEFAULT },
 								]}
 							>
-								{duplicateSave.siteName && (
-									<Text
-										style={[
-											styles.duplicateSiteName,
-											{ color: colors.mutedForeground },
-										]}
-										numberOfLines={1}
-									>
-										{duplicateSave.siteName}
-									</Text>
-								)}
-								<Text
-									style={[styles.duplicateTitle, { color: colors.text }]}
-									numberOfLines={2}
-								>
-									{duplicateSave.title || extractDomain(duplicateSave.url)}
-								</Text>
-							</Pressable>
-						)}
+								<Bookmark
+									size={32}
+									color="#FFFFFF"
+									strokeWidth={2}
+									fill="#FFFFFF"
+								/>
+							</View>
+							<Text style={[styles.title, { color: colors.text }]}>
+								Already in your pocket!
+							</Text>
+							<Text
+								style={[styles.subtitle, { color: colors.mutedForeground }]}
+							>
+								{duplicateSave.id
+									? `You saved this ${formatRelativeTime(duplicateSave.savedAt)}`
+									: "This link is already in your saves"}
+							</Text>
 
-						{/* Actions */}
-						<View style={styles.actions}>
-							{duplicateSave.id ? (
-								<>
+							{/* Existing save preview - only show if we have details */}
+							{(duplicateSave.title ||
+								duplicateSave.siteName ||
+								duplicateSave.url) &&
+								duplicateSave.id && (
 									<Pressable
 										onPress={handleViewExistingSave}
 										style={({ pressed }) => [
-											styles.primaryButton,
-											{ backgroundColor: colors.primary },
-											pressed && styles.buttonPressed,
-										]}
-									>
-										<ExternalLink size={18} color={colors.primaryForeground} />
-										<Text
-											style={[
-												styles.primaryButtonText,
-												{ color: colors.primaryForeground },
-											]}
-										>
-											View Save
-										</Text>
-									</Pressable>
-									<Pressable
-										onPress={handleEditExistingSave}
-										style={({ pressed }) => [
-											styles.secondaryButton,
+											styles.duplicatePreview,
 											{
-												backgroundColor: colors.secondary,
+												backgroundColor: colors.muted,
 												borderColor: colors.border,
 											},
-											pressed && styles.buttonPressed,
+											pressed && { opacity: 0.8 },
 										]}
 									>
-										<Pencil size={16} color={colors.secondaryForeground} />
+										{duplicateSave.siteName && (
+											<Text
+												style={[
+													styles.duplicateSiteName,
+													{ color: colors.mutedForeground },
+												]}
+												numberOfLines={1}
+											>
+												{duplicateSave.siteName}
+											</Text>
+										)}
 										<Text
-											style={[
-												styles.secondaryButtonText,
-												{ color: colors.secondaryForeground },
-											]}
+											style={[styles.duplicateTitle, { color: colors.text }]}
+											numberOfLines={2}
 										>
-											Edit Save
+											{duplicateSave.title || extractDomain(duplicateSave.url)}
 										</Text>
 									</Pressable>
-								</>
-							) : (
-								<>
-									<Pressable
-										onPress={handleViewSave}
-										style={({ pressed }) => [
-											styles.primaryButton,
-											{ backgroundColor: colors.primary },
-											pressed && styles.buttonPressed,
-										]}
-									>
-										<ExternalLink size={18} color={colors.primaryForeground} />
-										<Text
-											style={[
-												styles.primaryButtonText,
-												{ color: colors.primaryForeground },
+								)}
+
+							{/* Actions */}
+							<View style={styles.actions}>
+								{duplicateSave.id ? (
+									<>
+										<Pressable
+											onPress={handleViewExistingSave}
+											style={({ pressed }) => [
+												styles.primaryButton,
+												{ backgroundColor: colors.primary },
+												pressed && styles.buttonPressed,
 											]}
 										>
-											View Saves
-										</Text>
-									</Pressable>
-									<Pressable
-										onPress={handleClose}
-										style={({ pressed }) => [
-											styles.secondaryButton,
-											{
-												backgroundColor: "transparent",
-												borderColor: colors.border,
-											},
-											pressed && styles.buttonPressed,
-										]}
-									>
-										<Text
-											style={[
-												styles.secondaryButtonText,
-												{ color: colors.mutedForeground },
+											<ExternalLink
+												size={18}
+												color={colors.primaryForeground}
+											/>
+											<Text
+												style={[
+													styles.primaryButtonText,
+													{ color: colors.primaryForeground },
+												]}
+											>
+												View Save
+											</Text>
+										</Pressable>
+										<Pressable
+											onPress={handleEditExistingSave}
+											style={({ pressed }) => [
+												styles.secondaryButton,
+												{
+													backgroundColor: colors.secondary,
+													borderColor: colors.border,
+												},
+												pressed && styles.buttonPressed,
 											]}
 										>
-											Got it
-										</Text>
-									</Pressable>
-								</>
-							)}
+											<Pencil size={16} color={colors.secondaryForeground} />
+											<Text
+												style={[
+													styles.secondaryButtonText,
+													{ color: colors.secondaryForeground },
+												]}
+											>
+												Edit Save
+											</Text>
+										</Pressable>
+									</>
+								) : (
+									<>
+										<Pressable
+											onPress={handleViewSave}
+											style={({ pressed }) => [
+												styles.primaryButton,
+												{ backgroundColor: colors.primary },
+												pressed && styles.buttonPressed,
+											]}
+										>
+											<ExternalLink
+												size={18}
+												color={colors.primaryForeground}
+											/>
+											<Text
+												style={[
+													styles.primaryButtonText,
+													{ color: colors.primaryForeground },
+												]}
+											>
+												View Saves
+											</Text>
+										</Pressable>
+										<Pressable
+											onPress={handleClose}
+											style={({ pressed }) => [
+												styles.secondaryButton,
+												{
+													backgroundColor: "transparent",
+													borderColor: colors.border,
+												},
+												pressed && styles.buttonPressed,
+											]}
+										>
+											<Text
+												style={[
+													styles.secondaryButtonText,
+													{ color: colors.mutedForeground },
+												]}
+											>
+												Got it
+											</Text>
+										</Pressable>
+									</>
+								)}
+							</View>
 						</View>
-					</View>
-				)}
+					)}
 
 					{/* Error State */}
 					{status === "error" && (

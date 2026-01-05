@@ -260,9 +260,15 @@ export default function SaveDetailScreen() {
 						>
 							Fetching title, description, and preview image...
 						</Text>
-						<TouchableOpacity onPress={handleOpenUrl} style={styles.processingUrlContainer}>
+						<TouchableOpacity
+							onPress={handleOpenUrl}
+							style={styles.processingUrlContainer}
+						>
 							<Text
-								style={[styles.processingUrl, { color: brandColors.rust.DEFAULT }]}
+								style={[
+									styles.processingUrl,
+									{ color: brandColors.rust.DEFAULT },
+								]}
 								numberOfLines={2}
 							>
 								{save.url}

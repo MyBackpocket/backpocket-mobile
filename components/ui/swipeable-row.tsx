@@ -101,7 +101,10 @@ export function SwipeableRow({
 			const startPosition = isOpen.value ? -TOTAL_ACTIONS_WIDTH : 0;
 			const newPosition = startPosition + event.translationX;
 			// Clamp between fully closed (0) and fully open (-TOTAL_ACTIONS_WIDTH)
-			translateX.value = Math.min(0, Math.max(newPosition, -TOTAL_ACTIONS_WIDTH));
+			translateX.value = Math.min(
+				0,
+				Math.max(newPosition, -TOTAL_ACTIONS_WIDTH),
+			);
 		})
 		.onEnd((event) => {
 			const velocity = event.velocityX;
@@ -168,7 +171,9 @@ export function SwipeableRow({
 						strokeWidth={2}
 						fill={isFavorite ? brandColors.rust.DEFAULT : "transparent"}
 					/>
-					<Text style={[styles.actionText, { color: brandColors.rust.DEFAULT }]}>
+					<Text
+						style={[styles.actionText, { color: brandColors.rust.DEFAULT }]}
+					>
 						{isFavorite ? "Unfavorite" : "Favorite"}
 					</Text>
 				</Pressable>
@@ -181,7 +186,11 @@ export function SwipeableRow({
 					onPress={handleArchive}
 				>
 					{isArchived ? (
-						<ArchiveRestore size={20} color={brandColors.teal} strokeWidth={2} />
+						<ArchiveRestore
+							size={20}
+							color={brandColors.teal}
+							strokeWidth={2}
+						/>
 					) : (
 						<Archive size={20} color={brandColors.teal} strokeWidth={2} />
 					)}

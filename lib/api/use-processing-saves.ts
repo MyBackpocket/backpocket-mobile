@@ -74,4 +74,3 @@ export function getProcessingRefetchInterval(
 
 	return hasProcessingSaves(saves) ? PROCESSING_POLL_INTERVAL_MS : false;
 }
-

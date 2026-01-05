@@ -29,7 +29,11 @@ import { ProcessingBadge } from "@/components/ui/processing-badge";
 import { SwipeableRow } from "@/components/ui/swipeable-row";
 import { brandColors, radii } from "@/constants/theme";
 import { useThemeColors } from "@/hooks/use-theme-color";
-import { useDeleteSave, useToggleArchive, useToggleFavorite } from "@/lib/api/saves";
+import {
+	useDeleteSave,
+	useToggleArchive,
+	useToggleFavorite,
+} from "@/lib/api/saves";
 import { useDashboard } from "@/lib/api/space";
 import type { Save } from "@/lib/api/types";
 import { isSaveProcessing } from "@/lib/api/use-processing-saves";
@@ -48,12 +52,7 @@ export default function DashboardScreen() {
 	const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
 	// Fetch dashboard data (auto-polls when there are processing saves)
-	const {
-		data: dashboard,
-		isLoading,
-		isError,
-		refetch,
-	} = useDashboard();
+	const { data: dashboard, isLoading, isError, refetch } = useDashboard();
 
 	// Filter out archived items from recent saves - they shouldn't appear here
 	const recentSaves = (dashboard?.recentSaves || []).filter(
@@ -262,22 +261,24 @@ export default function DashboardScreen() {
 						</View>
 					)}
 
-				{!isLoading && recentSaves.length > 0 && (
-					<GestureHandlerRootView style={styles.savesList}>
-						{recentSaves.slice(0, 5).map((save, index) => (
-							<SaveListItem
-								key={save.id}
-								save={save}
-								colors={colors}
-								isLast={index === Math.min(recentSaves.length, 5) - 1}
-								onPress={() => router.push(`/save/${save.id}`)}
-								onDelete={() => handleDeleteSave(save.id)}
-								onArchive={() => handleArchiveSave(save.id)}
-								onFavorite={() => handleFavoriteSave(save.id, save.isFavorite)}
-							/>
-						))}
-					</GestureHandlerRootView>
-				)}
+					{!isLoading && recentSaves.length > 0 && (
+						<GestureHandlerRootView style={styles.savesList}>
+							{recentSaves.slice(0, 5).map((save, index) => (
+								<SaveListItem
+									key={save.id}
+									save={save}
+									colors={colors}
+									isLast={index === Math.min(recentSaves.length, 5) - 1}
+									onPress={() => router.push(`/save/${save.id}`)}
+									onDelete={() => handleDeleteSave(save.id)}
+									onArchive={() => handleArchiveSave(save.id)}
+									onFavorite={() =>
+										handleFavoriteSave(save.id, save.isFavorite)
+									}
+								/>
+							))}
+						</GestureHandlerRootView>
+					)}
 				</View>
 			</View>
 		</ScrollView>
@@ -374,7 +375,7 @@ function SaveListItem({
 						onDelete();
 					},
 				},
-			]
+			],
 		);
 	};
 

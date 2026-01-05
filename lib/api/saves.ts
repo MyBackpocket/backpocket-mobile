@@ -308,7 +308,10 @@ export function useToggleArchive() {
 						),
 						stats: {
 							...previousDashboard.stats,
-							archivedSaves: Math.max(0, previousDashboard.stats.archivedSaves - 1),
+							archivedSaves: Math.max(
+								0,
+								previousDashboard.stats.archivedSaves - 1,
+							),
 						},
 					});
 				}
@@ -330,7 +333,10 @@ export function useToggleArchive() {
 				}
 			}
 			if (context?.previousDashboard) {
-				queryClient.setQueryData(spaceKeys.dashboard(), context.previousDashboard);
+				queryClient.setQueryData(
+					spaceKeys.dashboard(),
+					context.previousDashboard,
+				);
 			}
 		},
 		onSuccess: (data) => {
@@ -424,7 +430,10 @@ export function useDeleteSave() {
 				}
 			}
 			if (context?.previousDashboard) {
-				queryClient.setQueryData(spaceKeys.dashboard(), context.previousDashboard);
+				queryClient.setQueryData(
+					spaceKeys.dashboard(),
+					context.previousDashboard,
+				);
 			}
 		},
 		onSuccess: (_, saveId) => {

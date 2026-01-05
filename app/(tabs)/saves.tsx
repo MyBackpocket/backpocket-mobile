@@ -47,7 +47,11 @@ const filterLabels: Record<FilterType, string> = {
 	public: "Public",
 };
 
-const filterOptions: { value: FilterType; label: string; icon: typeof Heart }[] = [
+const filterOptions: {
+	value: FilterType;
+	label: string;
+	icon: typeof Heart;
+}[] = [
 	{ value: "all", label: "All Saves", icon: Bookmark },
 	{ value: "favorites", label: "Favorites", icon: Heart },
 	{ value: "public", label: "Public", icon: Globe },
@@ -99,15 +103,18 @@ export default function SavesScreen() {
 		}
 	}, [refetch]);
 
-	const handleFilterSelect = useCallback((filterValue: FilterType) => {
-		Haptics.selectionAsync();
-		if (filterValue === "all") {
-			router.setParams({ filter: undefined });
-		} else {
-			router.setParams({ filter: filterValue });
-		}
-		setShowFilterModal(false);
-	}, [router]);
+	const handleFilterSelect = useCallback(
+		(filterValue: FilterType) => {
+			Haptics.selectionAsync();
+			if (filterValue === "all") {
+				router.setParams({ filter: undefined });
+			} else {
+				router.setParams({ filter: filterValue });
+			}
+			setShowFilterModal(false);
+		},
+		[router],
+	);
 
 	const openFilterModal = useCallback(() => {
 		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -296,10 +303,7 @@ export default function SavesScreen() {
 				) : (
 					<TouchableOpacity
 						onPress={openFilterModal}
-						style={[
-							styles.filterChip,
-							{ backgroundColor: colors.muted },
-						]}
+						style={[styles.filterChip, { backgroundColor: colors.muted }]}
 						activeOpacity={0.7}
 					>
 						<Text style={[styles.filterChipText, { color: colors.text }]}>
@@ -328,12 +332,7 @@ export default function SavesScreen() {
 					style={styles.modalOverlay}
 					onPress={() => setShowFilterModal(false)}
 				>
-					<View
-						style={[
-							styles.modalContent,
-							{ backgroundColor: colors.card },
-						]}
-					>
+					<View style={[styles.modalContent, { backgroundColor: colors.card }]}>
 						<View style={styles.modalHeader}>
 							<Text style={[styles.modalTitle, { color: colors.text }]}>
 								Filter Saves
@@ -375,7 +374,9 @@ export default function SavesScreen() {
 										>
 											<IconComponent
 												size={18}
-												color={isActive ? colors.primary : colors.mutedForeground}
+												color={
+													isActive ? colors.primary : colors.mutedForeground
+												}
 											/>
 										</View>
 										<Text
@@ -571,11 +572,7 @@ function SaveCard({
 				>
 					<Archive
 						size={20}
-						color={
-							save.isArchived
-								? brandColors.teal
-								: colors.mutedForeground
-						}
+						color={save.isArchived ? brandColors.teal : colors.mutedForeground}
 					/>
 				</TouchableOpacity>
 

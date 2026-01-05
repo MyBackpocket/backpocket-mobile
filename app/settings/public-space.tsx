@@ -431,9 +431,7 @@ export default function PublicSpaceSettingsScreen() {
 									) : (
 										<Lock
 											size={16}
-											color={
-												isSelected ? colors.text : colors.mutedForeground
-											}
+											color={isSelected ? colors.text : colors.mutedForeground}
 											strokeWidth={2}
 										/>
 									)}
@@ -446,7 +444,9 @@ export default function PublicSpaceSettingsScreen() {
 														? brandColors.mint
 														: colors.text
 													: colors.mutedForeground,
-												fontFamily: isSelected ? "DMSans-Bold" : "DMSans-Medium",
+												fontFamily: isSelected
+													? "DMSans-Bold"
+													: "DMSans-Medium",
 											},
 										]}
 									>
