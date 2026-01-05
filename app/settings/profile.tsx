@@ -86,129 +86,131 @@ export default function ProfileSettingsScreen() {
 				]}
 				keyboardShouldPersistTaps="handled"
 			>
-			{/* Profile Picture Section */}
-			<View style={styles.avatarSection}>
-				{user?.imageUrl ? (
-					<Image source={{ uri: user.imageUrl }} style={styles.avatarImage} />
-				) : (
-					<View
-						style={[
-							styles.avatarPlaceholder,
-							{ backgroundColor: brandColors.denim.DEFAULT },
-						]}
-					>
-						<Text style={styles.avatarText}>{userInitial}</Text>
-					</View>
-				)}
-				<Text style={[styles.avatarHint, { color: colors.mutedForeground }]}>
-					Profile picture is managed through your account provider
+				{/* Profile Picture Section */}
+				<View style={styles.avatarSection}>
+					{user?.imageUrl ? (
+						<Image source={{ uri: user.imageUrl }} style={styles.avatarImage} />
+					) : (
+						<View
+							style={[
+								styles.avatarPlaceholder,
+								{ backgroundColor: brandColors.denim.DEFAULT },
+							]}
+						>
+							<Text style={styles.avatarText}>{userInitial}</Text>
+						</View>
+					)}
+					<Text style={[styles.avatarHint, { color: colors.mutedForeground }]}>
+						Profile picture is managed through your account provider
+					</Text>
+				</View>
+
+				{/* Form Fields */}
+				<Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
+					Personal Information
 				</Text>
-			</View>
-
-			{/* Form Fields */}
-			<Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
-				Personal Information
-			</Text>
-			<Card style={styles.card}>
-				<CardContent style={styles.cardContent}>
-					<View style={styles.inputGroup}>
-						<Text style={[styles.inputLabel, { color: colors.text }]}>
-							First Name
-						</Text>
-						<View
-							style={[
-								styles.inputContainer,
-								{
-									backgroundColor: colors.muted,
-									borderColor: colors.border,
-								},
-							]}
-						>
-							<User size={18} color={colors.mutedForeground} />
-							<TextInput
-								style={[styles.input, { color: colors.text }]}
-								value={firstName}
-								onChangeText={setFirstName}
-								placeholder="Enter first name"
-								placeholderTextColor={colors.mutedForeground}
-								autoCapitalize="words"
-								autoCorrect={false}
-							/>
-						</View>
-					</View>
-
-					<View style={styles.inputGroup}>
-						<Text style={[styles.inputLabel, { color: colors.text }]}>
-							Last Name
-						</Text>
-						<View
-							style={[
-								styles.inputContainer,
-								{
-									backgroundColor: colors.muted,
-									borderColor: colors.border,
-								},
-							]}
-						>
-							<User size={18} color={colors.mutedForeground} />
-							<TextInput
-								style={[styles.input, { color: colors.text }]}
-								value={lastName}
-								onChangeText={setLastName}
-								placeholder="Enter last name"
-								placeholderTextColor={colors.mutedForeground}
-								autoCapitalize="words"
-								autoCorrect={false}
-							/>
-						</View>
-					</View>
-
-					<View style={styles.inputGroup}>
-						<Text style={[styles.inputLabel, { color: colors.text }]}>
-							Email
-						</Text>
-						<View
-							style={[
-								styles.inputContainer,
-								styles.inputDisabled,
-								{
-									backgroundColor: colors.muted,
-									borderColor: colors.border,
-								},
-							]}
-						>
-							<Mail size={18} color={colors.mutedForeground} />
-							<Text
+				<Card style={styles.card}>
+					<CardContent style={styles.cardContent}>
+						<View style={styles.inputGroup}>
+							<Text style={[styles.inputLabel, { color: colors.text }]}>
+								First Name
+							</Text>
+							<View
 								style={[
-									styles.inputDisabledText,
-									{ color: colors.mutedForeground },
+									styles.inputContainer,
+									{
+										backgroundColor: colors.muted,
+										borderColor: colors.border,
+									},
 								]}
 							>
-								{user?.emailAddresses?.[0]?.emailAddress || "No email"}
+								<User size={18} color={colors.mutedForeground} />
+								<TextInput
+									style={[styles.input, { color: colors.text }]}
+									value={firstName}
+									onChangeText={setFirstName}
+									placeholder="Enter first name"
+									placeholderTextColor={colors.mutedForeground}
+									autoCapitalize="words"
+									autoCorrect={false}
+								/>
+							</View>
+						</View>
+
+						<View style={styles.inputGroup}>
+							<Text style={[styles.inputLabel, { color: colors.text }]}>
+								Last Name
+							</Text>
+							<View
+								style={[
+									styles.inputContainer,
+									{
+										backgroundColor: colors.muted,
+										borderColor: colors.border,
+									},
+								]}
+							>
+								<User size={18} color={colors.mutedForeground} />
+								<TextInput
+									style={[styles.input, { color: colors.text }]}
+									value={lastName}
+									onChangeText={setLastName}
+									placeholder="Enter last name"
+									placeholderTextColor={colors.mutedForeground}
+									autoCapitalize="words"
+									autoCorrect={false}
+								/>
+							</View>
+						</View>
+
+						<View style={styles.inputGroup}>
+							<Text style={[styles.inputLabel, { color: colors.text }]}>
+								Email
+							</Text>
+							<View
+								style={[
+									styles.inputContainer,
+									styles.inputDisabled,
+									{
+										backgroundColor: colors.muted,
+										borderColor: colors.border,
+									},
+								]}
+							>
+								<Mail size={18} color={colors.mutedForeground} />
+								<Text
+									style={[
+										styles.inputDisabledText,
+										{ color: colors.mutedForeground },
+									]}
+								>
+									{user?.emailAddresses?.[0]?.emailAddress || "No email"}
+								</Text>
+							</View>
+							<Text
+								style={[styles.inputHint, { color: colors.mutedForeground }]}
+							>
+								Email address cannot be changed from the app
 							</Text>
 						</View>
-						<Text style={[styles.inputHint, { color: colors.mutedForeground }]}>
-							Email address cannot be changed from the app
-						</Text>
-					</View>
-				</CardContent>
-			</Card>
+					</CardContent>
+				</Card>
 
-			{/* Save Button */}
-			<Button
-				onPress={handleSave}
-				disabled={!hasChanges || isSaving}
-				style={[styles.saveButton, !hasChanges && styles.saveButtonDisabled]}
-			>
-				{isSaving ? (
-					<ActivityIndicator size="small" color="#FFFFFF" />
-				) : (
-					<>
-						<Save size={18} color="#FFFFFF" strokeWidth={2} />
-						<Text style={styles.saveButtonText}>Save Changes</Text>
-					</>
-				)}
-			</Button>
+				{/* Save Button */}
+				<Button
+					onPress={handleSave}
+					disabled={!hasChanges || isSaving}
+					style={[styles.saveButton, !hasChanges && styles.saveButtonDisabled]}
+				>
+					{isSaving ? (
+						<ActivityIndicator size="small" color="#FFFFFF" />
+					) : (
+						<>
+							<Save size={18} color="#FFFFFF" strokeWidth={2} />
+							<Text style={styles.saveButtonText}>Save Changes</Text>
+						</>
+					)}
+				</Button>
 			</ScrollView>
 		</KeyboardAvoidingView>
 	);

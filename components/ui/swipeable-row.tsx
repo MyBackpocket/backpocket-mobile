@@ -171,9 +171,7 @@ export function SwipeableRow({
 						strokeWidth={2}
 						fill={isFavorite ? brandColors.amber : "transparent"}
 					/>
-					<Text
-						style={[styles.actionText, { color: brandColors.amber }]}
-					>
+					<Text style={[styles.actionText, { color: brandColors.amber }]}>
 						{isFavorite ? "Unfavorite" : "Favorite"}
 					</Text>
 				</Pressable>

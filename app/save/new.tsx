@@ -253,53 +253,54 @@ export default function NewSaveScreen() {
 					contentContainerStyle={styles.content}
 					keyboardShouldPersistTaps="handled"
 				>
-				{/* URL Input */}
-				<Card style={styles.urlCard}>
-					<CardContent style={styles.urlCardContent}>
-						<View style={styles.urlInputGroup}>
-							<View style={[styles.urlIcon, { backgroundColor: colors.muted }]}>
-								<LinkIcon size={18} color={colors.mutedForeground} />
+					{/* URL Input */}
+					<Card style={styles.urlCard}>
+						<CardContent style={styles.urlCardContent}>
+							<View style={styles.urlInputGroup}>
+								<View
+									style={[styles.urlIcon, { backgroundColor: colors.muted }]}
+								>
+									<LinkIcon size={18} color={colors.mutedForeground} />
+								</View>
+								<Input
+									placeholder="https://example.com/article"
+									value={url}
+									onChangeText={setUrl}
+									autoCapitalize="none"
+									autoCorrect={false}
+									keyboardType="url"
+									returnKeyType="next"
+									containerStyle={styles.urlInputContainer}
+								/>
 							</View>
+						</CardContent>
+					</Card>
+
+					{/* Title (optional) */}
+					<Card style={styles.section}>
+						<CardContent style={styles.sectionContent}>
+							<Text style={[styles.sectionLabel, { color: colors.text }]}>
+								Title (optional)
+							</Text>
 							<Input
-								placeholder="https://example.com/article"
-								value={url}
-								onChangeText={setUrl}
-								autoCapitalize="none"
-								autoCorrect={false}
-								keyboardType="url"
-								returnKeyType="next"
-								containerStyle={styles.urlInputContainer}
+								placeholder="Custom title for this save"
+								value={title}
+								onChangeText={setTitle}
 							/>
-						</View>
-					</CardContent>
-				</Card>
+							<Text style={[styles.hint, { color: colors.mutedForeground }]}>
+								Leave empty to use the page title
+							</Text>
+						</CardContent>
+					</Card>
 
-				{/* Title (optional) */}
-				<Card style={styles.section}>
-					<CardContent style={styles.sectionContent}>
-						<Text style={[styles.sectionLabel, { color: colors.text }]}>
-							Title (optional)
-						</Text>
-						<Input
-							placeholder="Custom title for this save"
-							value={title}
-							onChangeText={setTitle}
-						/>
-						<Text style={[styles.hint, { color: colors.mutedForeground }]}>
-							Leave empty to use the page title
-						</Text>
-					</CardContent>
-				</Card>
-
-				{/* Visibility */}
-				<Card style={styles.section}>
-					<CardContent style={styles.sectionContent}>
-						<Text style={[styles.sectionLabel, { color: colors.text }]}>
-							Visibility
-						</Text>
-						<View style={styles.visibilityOptions}>
-							{(["private", "public"] as SaveVisibility[]).map(
-								(v) => {
+					{/* Visibility */}
+					<Card style={styles.section}>
+						<CardContent style={styles.sectionContent}>
+							<Text style={[styles.sectionLabel, { color: colors.text }]}>
+								Visibility
+							</Text>
+							<View style={styles.visibilityOptions}>
+								{(["private", "public"] as SaveVisibility[]).map((v) => {
 									const isSelected = visibility === v;
 									return (
 										<TouchableOpacity
@@ -338,76 +339,75 @@ export default function NewSaveScreen() {
 											</Text>
 										</TouchableOpacity>
 									);
-								},
-							)}
-						</View>
-					</CardContent>
-				</Card>
-
-				{/* Tags */}
-				<Card style={styles.section}>
-					<CardContent style={styles.sectionContent}>
-						<Text style={[styles.sectionLabel, { color: colors.text }]}>
-							Tags
-						</Text>
-						<View style={styles.tagInputRow}>
-							<Input
-								placeholder="Add a tag"
-								value={tagInput}
-								onChangeText={setTagInput}
-								onSubmitEditing={handleAddTag}
-								returnKeyType="done"
-								autoCapitalize="none"
-								containerStyle={styles.tagInputContainer}
-							/>
-							<Button
-								size="sm"
-								onPress={handleAddTag}
-								disabled={!tagInput.trim()}
-								style={styles.addTagButton}
-							>
-								Add
-							</Button>
-						</View>
-						{tags.length > 0 && (
-							<View style={styles.tagsContainer}>
-								{tags.map((tag) => (
-									<TouchableOpacity
-										key={tag}
-										style={[
-											styles.tag,
-											{ backgroundColor: `${brandColors.denim.DEFAULT}18` },
-										]}
-										onPress={() => handleRemoveTag(tag)}
-										activeOpacity={0.7}
-									>
-										<Text
-											style={[
-												styles.tagText,
-												{ color: brandColors.denim.deep },
-											]}
-										>
-											{tag}
-										</Text>
-										<X size={14} color={brandColors.denim.deep} />
-									</TouchableOpacity>
-								))}
+								})}
 							</View>
-						)}
-					</CardContent>
-				</Card>
+						</CardContent>
+					</Card>
 
-				{/* Save Button */}
-				<View style={styles.buttonContainer}>
-					<Button
-						onPress={handleSave}
-						loading={createSave.isPending}
-						disabled={createSave.isPending || !url.trim()}
-						style={styles.saveButton}
-					>
-						Save Link
-					</Button>
-				</View>
+					{/* Tags */}
+					<Card style={styles.section}>
+						<CardContent style={styles.sectionContent}>
+							<Text style={[styles.sectionLabel, { color: colors.text }]}>
+								Tags
+							</Text>
+							<View style={styles.tagInputRow}>
+								<Input
+									placeholder="Add a tag"
+									value={tagInput}
+									onChangeText={setTagInput}
+									onSubmitEditing={handleAddTag}
+									returnKeyType="done"
+									autoCapitalize="none"
+									containerStyle={styles.tagInputContainer}
+								/>
+								<Button
+									size="sm"
+									onPress={handleAddTag}
+									disabled={!tagInput.trim()}
+									style={styles.addTagButton}
+								>
+									Add
+								</Button>
+							</View>
+							{tags.length > 0 && (
+								<View style={styles.tagsContainer}>
+									{tags.map((tag) => (
+										<TouchableOpacity
+											key={tag}
+											style={[
+												styles.tag,
+												{ backgroundColor: `${brandColors.denim.DEFAULT}18` },
+											]}
+											onPress={() => handleRemoveTag(tag)}
+											activeOpacity={0.7}
+										>
+											<Text
+												style={[
+													styles.tagText,
+													{ color: brandColors.denim.deep },
+												]}
+											>
+												{tag}
+											</Text>
+											<X size={14} color={brandColors.denim.deep} />
+										</TouchableOpacity>
+									))}
+								</View>
+							)}
+						</CardContent>
+					</Card>
+
+					{/* Save Button */}
+					<View style={styles.buttonContainer}>
+						<Button
+							onPress={handleSave}
+							loading={createSave.isPending}
+							disabled={createSave.isPending || !url.trim()}
+							style={styles.saveButton}
+						>
+							Save Link
+						</Button>
+					</View>
 				</ScrollView>
 			</KeyboardAvoidingView>
 		</>

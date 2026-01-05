@@ -556,11 +556,7 @@ function SaveCard({
 				>
 					<Star
 						size={20}
-						color={
-							save.isFavorite
-								? brandColors.amber
-								: colors.mutedForeground
-						}
+						color={save.isFavorite ? brandColors.amber : colors.mutedForeground}
 						fill={save.isFavorite ? brandColors.amber : "transparent"}
 					/>
 				</TouchableOpacity>
