@@ -154,15 +154,17 @@ Content-Type: application/json
 
 ### 🔓 Public (No Auth Required)
 
-| Action                | Endpoint                       | Method | Consumer |
-| --------------------- | ------------------------------ | ------ | -------- |
-| Resolve space by host | `public.resolveSpaceByHost`    | POST   | ✅ All   |
-| Resolve space by slug | `public.resolveSpaceBySlug`    | POST   | ✅ All   |
-| List public saves     | `public.listPublicSaves`       | POST   | ✅ All   |
-| Get public save       | `public.getPublicSave`         | POST   | ✅ All   |
-| Get public snapshot   | `public.getPublicSaveSnapshot` | POST   | ✅ All   |
-| Register visit        | `public.registerVisit`         | POST   | ✅ All   |
-| Get visit count       | `public.getVisitCount`         | POST   | ✅ All   |
+| Action                  | Endpoint                       | Method | Consumer |
+| ----------------------- | ------------------------------ | ------ | -------- |
+| Resolve space by host   | `public.resolveSpaceByHost`    | POST   | ✅ All   |
+| Resolve space by slug   | `public.resolveSpaceBySlug`    | POST   | ✅ All   |
+| List public saves       | `public.listPublicSaves`       | POST   | ✅ All   |
+| Get public save         | `public.getPublicSave`         | POST   | ✅ All   |
+| List public tags        | `public.listPublicTags`        | POST   | ✅ All   |
+| List public collections | `public.listPublicCollections` | POST   | ✅ All   |
+| Get public snapshot     | `public.getPublicSaveSnapshot` | POST   | ✅ All   |
+| Register visit          | `public.registerVisit`         | POST   | ✅ All   |
+| Get visit count         | `public.getVisitCount`         | POST   | ✅ All   |
 
 ---
 
@@ -1017,12 +1019,117 @@ These endpoints don't require authentication and are used for public space pages
 
 **Endpoint:** `POST /api/trpc/public.listPublicSaves`
 
+List public saves with optional filtering by search query, tag, or collection.
+
+**Request:**
+
 ```json
 {
   "json": {
     "spaceId": "uuid",
+    "query": "search term",
+    "tagName": "reading",
+    "collectionId": "uuid",
     "cursor": "2024-01-01T00:00:00.000Z",
     "limit": 20
+  }
+}
+```
+
+**Input Schema:**
+
+| Field          | Type     | Required | Default | Description                           |
+| -------------- | -------- | -------- | ------- | ------------------------------------- |
+| `spaceId`      | `string` | ✅ Yes   | -       | Space ID to list saves from           |
+| `query`        | `string` | ❌ No    | -       | Search in title, description, URL     |
+| `tagName`      | `string` | ❌ No    | -       | Filter by tag name (case-insensitive) |
+| `collectionId` | `string` | ❌ No    | -       | Filter by collection ID               |
+| `cursor`       | `string` | ❌ No    | -       | Pagination cursor (ISO date)          |
+| `limit`        | `number` | ❌ No    | 20      | Results per page (1-50)               |
+
+**Response:**
+
+```json
+{
+  "result": {
+    "data": {
+      "items": [
+        {
+          "id": "uuid",
+          "url": "https://example.com",
+          "title": "Article Title",
+          "description": "...",
+          "siteName": "Example",
+          "imageUrl": "https://...",
+          "savedAt": "2024-01-01T00:00:00.000Z",
+          "tags": ["reading", "tech"]
+        }
+      ],
+      "nextCursor": "2024-01-01T00:00:00.000Z"
+    }
+  }
+}
+```
+
+---
+
+#### List Public Tags
+
+**Endpoint:** `POST /api/trpc/public.listPublicTags`
+
+Returns tags that have at least one public save in the space, sorted by count.
+
+**Request:**
+
+```json
+{
+  "json": {
+    "spaceId": "uuid"
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "result": {
+    "data": [
+      { "name": "reading", "count": 15 },
+      { "name": "tech", "count": 8 },
+      { "name": "design", "count": 5 }
+    ]
+  }
+}
+```
+
+---
+
+#### List Public Collections
+
+**Endpoint:** `POST /api/trpc/public.listPublicCollections`
+
+Returns collections containing at least one public save, sorted by count.
+
+**Request:**
+
+```json
+{
+  "json": {
+    "spaceId": "uuid"
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "result": {
+    "data": [
+      { "id": "uuid-1", "name": "Reading List", "count": 20 },
+      { "id": "uuid-2", "name": "Tech Articles", "count": 12 }
+    ]
   }
 }
 ```
@@ -1415,6 +1522,18 @@ These parameters affect content and are **not** stripped:
 ---
 
 ## Changelog
+
+### 2026-01-06
+
+#### Added
+
+- **Public Space Filtering:** `listPublicSaves` now supports filtering:
+  - `query` - Full-text search in title, description, and URL
+  - `tagName` - Filter by tag name (case-insensitive)
+  - `collectionId` - Filter by collection ID
+- **New Endpoint:** `public.listPublicTags` - Returns tags with public save counts
+- **New Endpoint:** `public.listPublicCollections` - Returns collections with public save counts
+- **Clickable Tags:** Tags on public save detail pages now link to filtered views
 
 ### 2026-01-05
 

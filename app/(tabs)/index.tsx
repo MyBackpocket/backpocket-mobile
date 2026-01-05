@@ -1,20 +1,30 @@
 import { useUser } from "@clerk/clerk-expo";
+import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
-import * as Linking from "expo-linking";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
 	Bookmark,
+	Check,
+	ChevronDown,
 	ChevronRight,
+	Copy,
 	ExternalLink,
+	Eye,
 	FolderOpen,
 	Globe,
+	Link2,
 	Plus,
 	Star,
+	X,
 } from "lucide-react-native";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
 	Alert,
+	Animated,
 	Image,
+	Modal,
+	Pressable,
 	RefreshControl,
 	ScrollView,
 	StyleSheet,
@@ -34,14 +44,17 @@ import {
 	useToggleArchive,
 	useToggleFavorite,
 } from "@/lib/api/saves";
-import { useDashboard } from "@/lib/api/space";
+import { useDashboard, useListDomains } from "@/lib/api/space";
 import type { Save } from "@/lib/api/types";
 import { isSaveProcessing } from "@/lib/api/use-processing-saves";
+import { buildPublicSpaceHostname, buildPublicSpaceUrl } from "@/lib/constants";
+import { useOpenUrl } from "@/lib/utils";
 
 export default function DashboardScreen() {
 	const colors = useThemeColors();
 	const router = useRouter();
 	const insets = useSafeAreaInsets();
+	const { openUrl } = useOpenUrl();
 
 	// Always call useUser hook (React rules of hooks)
 	const { user } = useUser();
@@ -53,6 +66,90 @@ export default function DashboardScreen() {
 
 	// Fetch dashboard data (auto-polls when there are processing saves)
 	const { data: dashboard, isLoading, isError, refetch } = useDashboard();
+
+	// Fetch custom domains
+	const { data: domains } = useListDomains();
+
+	// Public space data
+	const space = dashboard?.space;
+	const isPublicEnabled = space?.visibility === "public";
+	const publicSpaceUrl = space?.slug ? buildPublicSpaceUrl(space.slug) : "";
+	const publicSpaceHostname = space?.slug
+		? buildPublicSpaceHostname(space.slug)
+		: "";
+	const [copied, setCopied] = useState(false);
+	const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+	const [showLinksModal, setShowLinksModal] = useState(false);
+
+	// Build list of all space links (default + custom domains)
+	const spaceLinks = useMemo(() => {
+		const links: { hostname: string; url: string; isPrimary: boolean }[] = [];
+
+		// Add default subdomain
+		if (space?.slug) {
+			links.push({
+				hostname: buildPublicSpaceHostname(space.slug),
+				url: buildPublicSpaceUrl(space.slug),
+				isPrimary: true,
+			});
+		}
+
+		// Add active custom domains
+		if (domains) {
+			for (const domain of domains) {
+				if (domain.status === "active" || domain.status === "verified") {
+					links.push({
+						hostname: domain.domain,
+						url: `https://${domain.domain}`,
+						isPrimary: false,
+					});
+				}
+			}
+		}
+
+		return links;
+	}, [space?.slug, domains]);
+
+	const hasMultipleLinks = spaceLinks.length > 1;
+
+	// Animation for public space card
+	const [fadeAnim] = useState(() => new Animated.Value(0));
+	useEffect(() => {
+		if (isPublicEnabled && !isLoading) {
+			Animated.timing(fadeAnim, {
+				toValue: 1,
+				duration: 400,
+				useNativeDriver: true,
+			}).start();
+		}
+	}, [isPublicEnabled, isLoading, fadeAnim]);
+
+	const handleCopyUrl = useCallback(async (url: string) => {
+		await Clipboard.setStringAsync(url);
+		Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+		setCopiedUrl(url);
+		setTimeout(() => setCopiedUrl(null), 2000);
+	}, []);
+
+	const handleCopyPublicUrl = useCallback(async () => {
+		if (!publicSpaceUrl) return;
+		await Clipboard.setStringAsync(publicSpaceUrl);
+		Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+		setCopied(true);
+		setTimeout(() => setCopied(false), 2000);
+	}, [publicSpaceUrl]);
+
+	const handlePreviewPublicSpace = useCallback(() => {
+		if (!publicSpaceUrl) return;
+		openUrl(publicSpaceUrl);
+	}, [publicSpaceUrl, openUrl]);
+
+	const handleOpenSpaceLink = useCallback(
+		(url: string) => {
+			openUrl(url);
+		},
+		[openUrl],
+	);
 
 	// Filter out archived items from recent saves - they shouldn't appear here
 	const recentSaves = (dashboard?.recentSaves || []).filter(
@@ -189,6 +286,136 @@ export default function DashboardScreen() {
 				</View>
 			</View>
 
+			{/* Public Space Card - only show when public */}
+			{isPublicEnabled && space?.slug && (
+				<Animated.View style={{ opacity: fadeAnim }}>
+					<View style={styles.publicSpaceCard}>
+						<LinearGradient
+							colors={[`${brandColors.teal}25`, `${brandColors.mint}15`]}
+							start={{ x: 0, y: 0 }}
+							end={{ x: 1, y: 1 }}
+							style={styles.publicSpaceGradient}
+						>
+							<TouchableOpacity
+								style={styles.publicSpaceHeader}
+								onPress={
+									hasMultipleLinks ? () => setShowLinksModal(true) : undefined
+								}
+								activeOpacity={hasMultipleLinks ? 0.7 : 1}
+							>
+								<View
+									style={[
+										styles.publicSpaceIconContainer,
+										{ backgroundColor: `${brandColors.mint}30` },
+									]}
+								>
+									<Globe size={20} color={brandColors.mint} strokeWidth={2} />
+								</View>
+								<View style={styles.publicSpaceHeaderText}>
+									<Text
+										style={[styles.publicSpaceTitle, { color: colors.text }]}
+									>
+										Your Public Space
+									</Text>
+									<View style={styles.publicSpaceUrlRow}>
+										<Text
+											style={[
+												styles.publicSpaceUrl,
+												{ color: brandColors.teal },
+											]}
+										>
+											{publicSpaceHostname}
+										</Text>
+										{hasMultipleLinks && (
+											<View style={styles.multiLinkBadge}>
+												<Text
+													style={[
+														styles.multiLinkBadgeText,
+														{ color: colors.mutedForeground },
+													]}
+												>
+													+{spaceLinks.length - 1}
+												</Text>
+												<ChevronDown
+													size={12}
+													color={colors.mutedForeground}
+												/>
+											</View>
+										)}
+									</View>
+								</View>
+							</TouchableOpacity>
+
+							<View style={styles.publicSpaceStats}>
+								<View style={styles.publicSpaceStat}>
+									<Eye size={14} color={colors.mutedForeground} />
+									<Text
+										style={[styles.publicSpaceStatText, { color: colors.text }]}
+									>
+										{dashboard?.stats?.publicSaves ?? 0}
+									</Text>
+									<Text
+										style={[
+											styles.publicSpaceStatLabel,
+											{ color: colors.mutedForeground },
+										]}
+									>
+										public saves
+									</Text>
+								</View>
+							</View>
+
+							<View style={styles.publicSpaceActions}>
+								<TouchableOpacity
+									style={[
+										styles.publicSpaceButton,
+										{
+											backgroundColor: colors.card,
+											borderColor: colors.border,
+										},
+									]}
+									onPress={handleCopyPublicUrl}
+									activeOpacity={0.7}
+								>
+									{copied ? (
+										<Check size={18} color={brandColors.mint} strokeWidth={2} />
+									) : (
+										<Copy size={18} color={colors.text} strokeWidth={2} />
+									)}
+									<Text
+										style={[
+											styles.publicSpaceButtonText,
+											{ color: copied ? brandColors.mint : colors.text },
+										]}
+									>
+										{copied ? "Copied!" : "Copy Link"}
+									</Text>
+								</TouchableOpacity>
+								<TouchableOpacity
+									style={[
+										styles.publicSpaceButton,
+										styles.publicSpaceButtonPrimary,
+										{ backgroundColor: brandColors.teal },
+									]}
+									onPress={handlePreviewPublicSpace}
+									activeOpacity={0.7}
+								>
+									<ExternalLink size={18} color="#FFFFFF" strokeWidth={2} />
+									<Text style={styles.publicSpaceButtonTextPrimary}>
+										Preview
+									</Text>
+									<ChevronRight
+										size={16}
+										color="#FFFFFF"
+										style={{ marginLeft: -4 }}
+									/>
+								</TouchableOpacity>
+							</View>
+						</LinearGradient>
+					</View>
+				</Animated.View>
+			)}
+
 			{/* Quick Add Button */}
 			<Button
 				onPress={() => router.push("/save/new")}
@@ -275,12 +502,134 @@ export default function DashboardScreen() {
 									onFavorite={() =>
 										handleFavoriteSave(save.id, save.isFavorite)
 									}
+									onOpenUrl={openUrl}
 								/>
 							))}
 						</GestureHandlerRootView>
 					)}
 				</View>
 			</View>
+
+			{/* Space Links Modal */}
+			<Modal
+				visible={showLinksModal}
+				animationType="slide"
+				presentationStyle="pageSheet"
+				onRequestClose={() => setShowLinksModal(false)}
+			>
+				<View
+					style={[styles.linksModalContainer, { backgroundColor: colors.background }]}
+				>
+					<View style={[styles.linksModalHeader, { borderBottomColor: colors.border }]}>
+						<View style={styles.linksModalHeaderSpacer} />
+						<Text style={[styles.linksModalTitle, { color: colors.text }]}>
+							Space Links
+						</Text>
+						<TouchableOpacity
+							onPress={() => setShowLinksModal(false)}
+							style={styles.linksModalClose}
+							hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+						>
+							<X size={24} color={colors.text} />
+						</TouchableOpacity>
+					</View>
+
+					<ScrollView
+						style={styles.linksModalContent}
+						contentContainerStyle={styles.linksModalContentContainer}
+					>
+						<Text style={[styles.linksModalSubtitle, { color: colors.mutedForeground }]}>
+							Your public space is accessible at these URLs
+						</Text>
+
+						{spaceLinks.map((link, index) => {
+							const isCopied = copiedUrl === link.url;
+							return (
+								<View
+									key={link.hostname}
+									style={[
+										styles.linkItem,
+										{ backgroundColor: colors.card, borderColor: colors.border },
+									]}
+								>
+									<View style={styles.linkItemHeader}>
+										<Link2 size={16} color={colors.mutedForeground} />
+										<Text
+											style={[styles.linkItemHostname, { color: colors.text }]}
+											numberOfLines={1}
+										>
+											{link.hostname}
+										</Text>
+										{link.isPrimary && (
+											<View
+												style={[
+													styles.primaryBadge,
+													{ backgroundColor: `${brandColors.teal}20` },
+												]}
+											>
+												<Text
+													style={[
+														styles.primaryBadgeText,
+														{ color: brandColors.teal },
+													]}
+												>
+													Primary
+												</Text>
+											</View>
+										)}
+									</View>
+									<Text
+										style={[styles.linkItemUrl, { color: colors.mutedForeground }]}
+										numberOfLines={1}
+									>
+										{link.url}
+									</Text>
+									<View style={styles.linkItemActions}>
+										<TouchableOpacity
+											style={[
+												styles.linkItemButtonFull,
+												{ backgroundColor: colors.muted },
+											]}
+											onPress={() => handleCopyUrl(link.url)}
+											activeOpacity={0.7}
+										>
+											{isCopied ? (
+												<Check size={18} color={brandColors.mint} strokeWidth={2} />
+											) : (
+												<Copy size={18} color={colors.text} strokeWidth={2} />
+											)}
+											<Text
+												style={[
+													styles.linkItemButtonText,
+													{ color: isCopied ? brandColors.mint : colors.text },
+												]}
+											>
+												{isCopied ? "Copied!" : "Copy Link"}
+											</Text>
+										</TouchableOpacity>
+										<TouchableOpacity
+											style={[
+												styles.linkItemButtonFull,
+												{ backgroundColor: brandColors.teal },
+											]}
+											onPress={() => {
+												handleOpenSpaceLink(link.url);
+												setShowLinksModal(false);
+											}}
+											activeOpacity={0.7}
+										>
+											<ExternalLink size={18} color="#FFFFFF" strokeWidth={2} />
+											<Text style={styles.linkItemButtonTextPrimary}>
+												Open
+											</Text>
+										</TouchableOpacity>
+									</View>
+								</View>
+							);
+						})}
+					</ScrollView>
+				</View>
+			</Modal>
 		</ScrollView>
 	);
 }
@@ -346,6 +695,7 @@ interface SaveListItemProps {
 	onDelete: () => void;
 	onArchive: () => void;
 	onFavorite: () => void;
+	onOpenUrl: (url: string) => void;
 }
 
 function SaveListItem({
@@ -356,9 +706,10 @@ function SaveListItem({
 	onDelete,
 	onArchive,
 	onFavorite,
+	onOpenUrl,
 }: SaveListItemProps) {
 	const handleOpenUrl = () => {
-		Linking.openURL(save.url);
+		onOpenUrl(save.url);
 	};
 
 	const handleDelete = () => {
@@ -535,6 +886,105 @@ const styles = StyleSheet.create({
 	statChevron: {
 		opacity: 0.5,
 	},
+	publicSpaceCard: {
+		marginBottom: 24,
+		borderRadius: radii.xl,
+		overflow: "hidden",
+	},
+	publicSpaceGradient: {
+		padding: 20,
+		borderRadius: radii.xl,
+	},
+	publicSpaceHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 14,
+		marginBottom: 16,
+	},
+	publicSpaceIconContainer: {
+		width: 44,
+		height: 44,
+		borderRadius: radii.md,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	publicSpaceHeaderText: {
+		flex: 1,
+	},
+	publicSpaceTitle: {
+		fontSize: 17,
+		fontFamily: "DMSans-Bold",
+		fontWeight: "700",
+		marginBottom: 2,
+	},
+	publicSpaceUrl: {
+		fontSize: 14,
+		fontFamily: "DMSans-Medium",
+	},
+	publicSpaceUrlRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+	},
+	multiLinkBadge: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 2,
+		paddingHorizontal: 6,
+		paddingVertical: 2,
+		borderRadius: radii.full,
+		backgroundColor: "rgba(0,0,0,0.1)",
+	},
+	multiLinkBadgeText: {
+		fontSize: 12,
+		fontFamily: "DMSans-Medium",
+	},
+	publicSpaceStats: {
+		flexDirection: "row",
+		marginBottom: 16,
+	},
+	publicSpaceStat: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
+	},
+	publicSpaceStatText: {
+		fontSize: 15,
+		fontFamily: "DMSans-Bold",
+		fontWeight: "700",
+	},
+	publicSpaceStatLabel: {
+		fontSize: 14,
+		fontFamily: "DMSans",
+	},
+	publicSpaceActions: {
+		flexDirection: "row",
+		gap: 10,
+	},
+	publicSpaceButton: {
+		flex: 1,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 8,
+		paddingVertical: 12,
+		borderRadius: radii.md,
+		borderWidth: 1,
+	},
+	publicSpaceButtonPrimary: {
+		borderWidth: 0,
+	},
+	publicSpaceButtonText: {
+		fontSize: 14,
+		fontFamily: "DMSans-Medium",
+		fontWeight: "500",
+	},
+	publicSpaceButtonTextPrimary: {
+		color: "#FFFFFF",
+		fontSize: 14,
+		fontFamily: "DMSans-Medium",
+		fontWeight: "500",
+	},
 	quickAddButton: {
 		flexDirection: "row",
 		gap: 10,
@@ -639,5 +1089,100 @@ const styles = StyleSheet.create({
 	saveAction: {
 		padding: 10,
 		marginRight: -6,
+	},
+	// Links Modal styles
+	linksModalContainer: {
+		flex: 1,
+	},
+	linksModalHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		paddingHorizontal: 16,
+		paddingVertical: 16,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+	},
+	linksModalHeaderSpacer: {
+		width: 24,
+	},
+	linksModalTitle: {
+		fontSize: 17,
+		fontFamily: "DMSans-Bold",
+		fontWeight: "600",
+	},
+	linksModalClose: {
+		width: 24,
+		height: 24,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	linksModalContent: {
+		flex: 1,
+	},
+	linksModalContentContainer: {
+		padding: 20,
+	},
+	linksModalSubtitle: {
+		fontSize: 14,
+		fontFamily: "DMSans",
+		marginBottom: 16,
+	},
+	linkItem: {
+		borderRadius: radii.lg,
+		borderWidth: 1,
+		padding: 16,
+		marginBottom: 12,
+	},
+	linkItemHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+		marginBottom: 4,
+	},
+	linkItemHostname: {
+		fontSize: 16,
+		fontFamily: "DMSans-Bold",
+		fontWeight: "600",
+		flex: 1,
+	},
+	linkItemUrl: {
+		fontSize: 13,
+		fontFamily: "DMSans",
+		marginLeft: 24,
+		marginBottom: 14,
+	},
+	primaryBadge: {
+		paddingHorizontal: 8,
+		paddingVertical: 2,
+		borderRadius: radii.full,
+	},
+	primaryBadgeText: {
+		fontSize: 11,
+		fontFamily: "DMSans-Medium",
+		fontWeight: "500",
+	},
+	linkItemActions: {
+		flexDirection: "row",
+		gap: 10,
+	},
+	linkItemButtonFull: {
+		flex: 1,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 8,
+		height: 48,
+		borderRadius: radii.md,
+	},
+	linkItemButtonText: {
+		fontSize: 15,
+		fontFamily: "DMSans-Medium",
+		fontWeight: "500",
+	},
+	linkItemButtonTextPrimary: {
+		fontSize: 15,
+		fontFamily: "DMSans-Medium",
+		fontWeight: "500",
+		color: "#FFFFFF",
 	},
 });

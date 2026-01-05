@@ -4,7 +4,6 @@
  */
 
 import * as Haptics from "expo-haptics";
-import * as Linking from "expo-linking";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
 import {
@@ -58,6 +57,7 @@ import {
 import { useListTags } from "@/lib/api/tags";
 import type { Save, SaveVisibility } from "@/lib/api/types";
 import { isSaveProcessing } from "@/lib/api/use-processing-saves";
+import { useOpenUrl } from "@/lib/utils";
 
 // === Visibility Selector Component ===
 interface VisibilitySelectorProps {
@@ -793,6 +793,7 @@ export default function SaveDetailScreen() {
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const router = useRouter();
 	const colors = useThemeColors();
+	const { openUrl } = useOpenUrl();
 
 	const { data: save, isLoading, isError } = useGetSave(id);
 	const toggleFavorite = useToggleFavorite();
@@ -846,16 +847,15 @@ export default function SaveDetailScreen() {
 
 	const handleOpenUrl = useCallback(() => {
 		if (!save) return;
-		Linking.openURL(save.url);
-	}, [save]);
+		openUrl(save.url);
+	}, [save, openUrl]);
 
 	const _handleShare = useCallback(async () => {
 		if (!save) return;
 		try {
 			if (await Sharing.isAvailableAsync()) {
 				// Note: Sharing.shareAsync is for files, use native share for URLs
-				// For URL sharing, we'll use Linking for now
-				Linking.openURL(`sms:&body=${encodeURIComponent(save.url)}`);
+				await Sharing.shareAsync(save.url);
 			}
 		} catch (_error) {
 			console.error("Share failed:", _error);

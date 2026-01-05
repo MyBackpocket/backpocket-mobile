@@ -35,10 +35,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { brandColors, radii } from "@/constants/theme";
 import { useThemeColors } from "@/hooks/use-theme-color";
-import { useTheme } from "@/lib/theme/provider";
 import { getDuplicateSaveFromError, useCreateSave } from "@/lib/api/saves";
 import { useMySpace } from "@/lib/api/space";
 import type { DuplicateSaveInfo, SaveVisibility } from "@/lib/api/types";
+import { useTheme } from "@/lib/theme/provider";
 
 // Amber text colors optimized for readability
 const amberTextColors = {
@@ -386,9 +386,7 @@ export default function NewSaveScreen() {
 										>
 											<Icon
 												size={16}
-												color={
-													isSelected ? "#141D22" : colors.mutedForeground
-												}
+												color={isSelected ? "#141D22" : colors.mutedForeground}
 											/>
 											<Text
 												style={[

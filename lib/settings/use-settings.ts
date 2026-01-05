@@ -17,11 +17,13 @@ export type ThemePreference = "system" | "light" | "dark";
 export interface Settings {
 	theme: ThemePreference;
 	notificationsEnabled: boolean;
+	openLinksInApp: boolean;
 }
 
 const DEFAULT_SETTINGS: Settings = {
 	theme: "system",
 	notificationsEnabled: true,
+	openLinksInApp: true,
 };
 
 const SETTINGS_KEY = "backpocket_settings";

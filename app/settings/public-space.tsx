@@ -1,6 +1,6 @@
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
-import * as Linking from "expo-linking";
+import { LinearGradient } from "expo-linear-gradient";
 import {
 	AlertCircle,
 	Bookmark,
@@ -9,9 +9,11 @@ import {
 	Clock,
 	Copy,
 	ExternalLink,
+	Eye,
 	Globe,
 	Laptop,
 	Lock,
+	PanelTop,
 	Trash2,
 	Unlock,
 	XCircle,
@@ -49,6 +51,7 @@ import type {
 	SlugAvailability,
 } from "@/lib/api/types";
 import { buildPublicSpaceUrl, ROOT_DOMAIN } from "@/lib/constants";
+import { useOpenUrl } from "@/lib/utils";
 
 // Slug validation regex (same as API)
 const SLUG_REGEX = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
@@ -111,6 +114,7 @@ function getSlugReasonMessage(reason: SlugAvailability["reason"]): string {
 export default function PublicSpaceSettingsScreen() {
 	const colors = useThemeColors();
 	const insets = useSafeAreaInsets();
+	const { openUrl } = useOpenUrl();
 
 	// API hooks
 	const { data: space, isLoading: isLoadingSpace } = useMySpace();
@@ -208,9 +212,8 @@ export default function PublicSpaceSettingsScreen() {
 
 	const handleOpenPublicSpace = useCallback(() => {
 		if (!publicUrl) return;
-		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-		Linking.openURL(publicUrl);
-	}, [publicUrl]);
+		openUrl(publicUrl);
+	}, [publicUrl, openUrl]);
 
 	const handleSlugChange = useCallback((value: string) => {
 		// Normalize: lowercase, only allowed chars
@@ -275,9 +278,8 @@ export default function PublicSpaceSettingsScreen() {
 	);
 
 	const handleOpenWebSettings = useCallback(() => {
-		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-		Linking.openURL("https://backpocket.my/app/settings");
-	}, []);
+		openUrl("https://backpocket.my/app/settings");
+	}, [openUrl]);
 
 	const canSaveSlug =
 		slugAvailability?.available &&
@@ -481,34 +483,56 @@ export default function PublicSpaceSettingsScreen() {
 						>
 							Your Public Link
 						</Text>
-						<Card style={styles.card}>
-							<CardContent style={styles.cardContent}>
-								<View style={styles.urlContainer}>
+
+						{/* Visual Preview Card */}
+						<View style={styles.previewCardContainer}>
+							<LinearGradient
+								colors={[`${brandColors.teal}30`, `${brandColors.mint}20`]}
+								start={{ x: 0, y: 0 }}
+								end={{ x: 1, y: 1 }}
+								style={styles.previewCard}
+							>
+								<View style={styles.previewHeader}>
 									<View
 										style={[
-											styles.iconContainer,
-											{ backgroundColor: colors.muted },
+											styles.previewIconContainer,
+											{ backgroundColor: `${brandColors.mint}40` },
 										]}
 									>
-										<Globe
-											size={20}
-											color={colors.mutedForeground}
-											strokeWidth={2}
-										/>
+										<Globe size={24} color={brandColors.mint} strokeWidth={2} />
 									</View>
-									<Text
-										style={[styles.urlText, { color: colors.text }]}
-										numberOfLines={1}
-									>
-										{publicUrl}
-									</Text>
+									<View style={styles.previewHeaderText}>
+										<Text style={[styles.previewTitle, { color: colors.text }]}>
+											Your Public Space
+										</Text>
+										<Text
+											style={[styles.previewUrl, { color: brandColors.teal }]}
+										>
+											{publicUrl}
+										</Text>
+									</View>
 								</View>
-								<View style={styles.urlActions}>
+
+								<View style={styles.previewStats}>
+									<View style={styles.previewStat}>
+										<Eye size={14} color={colors.mutedForeground} />
+										<Text
+											style={[
+												styles.previewStatText,
+												{ color: colors.mutedForeground },
+											]}
+										>
+											Public saves appear here
+										</Text>
+									</View>
+								</View>
+
+								<View style={styles.previewActions}>
 									<TouchableOpacity
 										style={[
-											styles.urlButton,
+											styles.previewButton,
 											{
-												backgroundColor: colors.muted,
+												backgroundColor: colors.card,
 												borderColor: colors.border,
 											},
 										]}
@@ -522,37 +546,34 @@ export default function PublicSpaceSettingsScreen() {
 												strokeWidth={2}
 											/>
 										) : (
-											<Copy
-												size={18}
-												color={colors.mutedForeground}
-												strokeWidth={2}
-											/>
+											<Copy size={18} color={colors.text} strokeWidth={2} />
 										)}
 										<Text
 											style={[
-												styles.urlButtonText,
+												styles.previewButtonText,
 												{ color: copied ? brandColors.mint : colors.text },
 											]}
 										>
-											{copied ? "Copied!" : "Copy"}
+											{copied ? "Copied!" : "Copy Link"}
 										</Text>
 									</TouchableOpacity>
 									<TouchableOpacity
 										style={[
-											styles.urlButton,
-											{ backgroundColor: colors.primary },
+											styles.previewButton,
+											styles.previewButtonPrimary,
+											{ backgroundColor: brandColors.teal },
 										]}
 										onPress={handleOpenPublicSpace}
 										activeOpacity={0.7}
 									>
-										<ExternalLink size={18} color="#FFFFFF" strokeWidth={2} />
-										<Text style={[styles.urlButtonText, { color: "#FFFFFF" }]}>
-											Open
+										<PanelTop size={18} color="#FFFFFF" strokeWidth={2} />
+										<Text style={styles.previewButtonTextPrimary}>
+											Preview Space
 										</Text>
 									</TouchableOpacity>
 								</View>
-							</CardContent>
-						</Card>
+							</LinearGradient>
+						</View>
 
 						<Text style={[styles.helpText, { color: colors.mutedForeground }]}>
 							Share your public link with others to let them view your public
@@ -991,6 +1012,82 @@ const styles = StyleSheet.create({
 		lineHeight: 20,
 		marginLeft: 4,
 		marginBottom: 8,
+	},
+	// Preview card styles
+	previewCardContainer: {
+		marginBottom: 12,
+		borderRadius: radii.xl,
+		overflow: "hidden",
+	},
+	previewCard: {
+		padding: 20,
+		borderRadius: radii.xl,
+	},
+	previewHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 14,
+		marginBottom: 16,
+	},
+	previewIconContainer: {
+		width: 48,
+		height: 48,
+		borderRadius: radii.md,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	previewHeaderText: {
+		flex: 1,
+	},
+	previewTitle: {
+		fontSize: 18,
+		fontFamily: "DMSans-Bold",
+		fontWeight: "700",
+		marginBottom: 3,
+	},
+	previewUrl: {
+		fontSize: 14,
+		fontFamily: "DMSans-Medium",
+	},
+	previewStats: {
+		marginBottom: 16,
+	},
+	previewStat: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+	},
+	previewStatText: {
+		fontSize: 14,
+		fontFamily: "DMSans",
+	},
+	previewActions: {
+		flexDirection: "row",
+		gap: 10,
+	},
+	previewButton: {
+		flex: 1,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 8,
+		paddingVertical: 14,
+		borderRadius: radii.md,
+		borderWidth: 1,
+	},
+	previewButtonPrimary: {
+		borderWidth: 0,
+	},
+	previewButtonText: {
+		fontSize: 15,
+		fontFamily: "DMSans-Medium",
+		fontWeight: "500",
+	},
+	previewButtonTextPrimary: {
+		color: "#FFFFFF",
+		fontSize: 15,
+		fontFamily: "DMSans-Medium",
+		fontWeight: "500",
 	},
 	// Slug editor styles
 	slugEditRow: {

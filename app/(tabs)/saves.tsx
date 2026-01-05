@@ -1,5 +1,4 @@
 import * as Haptics from "expo-haptics";
-import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
 	Archive,
@@ -38,6 +37,7 @@ import {
 } from "@/lib/api/saves";
 import type { ListSavesInput, Save } from "@/lib/api/types";
 import { isSaveProcessing } from "@/lib/api/use-processing-saves";
+import { useOpenUrl } from "@/lib/utils";
 
 type FilterType = "all" | "favorites" | "public";
 
@@ -62,6 +62,7 @@ export default function SavesScreen() {
 	const router = useRouter();
 	const { filter } = useLocalSearchParams<{ filter?: FilterType }>();
 	const [showFilterModal, setShowFilterModal] = useState(false);
+	const { openUrl } = useOpenUrl();
 
 	const activeFilter: FilterType = filter || "all";
 
@@ -167,9 +168,10 @@ export default function SavesScreen() {
 				onPress={() => router.push(`/save/${item.id}`)}
 				onToggleFavorite={() => handleToggleFavorite(item)}
 				onToggleArchive={() => handleToggleArchive(item)}
+				onOpenUrl={openUrl}
 			/>
 		),
-		[colors, router, handleToggleFavorite, handleToggleArchive],
+		[colors, router, handleToggleFavorite, handleToggleArchive, openUrl],
 	);
 
 	const renderEmpty = useCallback(
@@ -442,6 +444,7 @@ interface SaveCardProps {
 	onPress: () => void;
 	onToggleFavorite: () => void;
 	onToggleArchive: () => void;
+	onOpenUrl: (url: string) => void;
 }
 
 function SaveCard({
@@ -450,9 +453,10 @@ function SaveCard({
 	onPress,
 	onToggleFavorite,
 	onToggleArchive,
+	onOpenUrl,
 }: SaveCardProps) {
 	const handleOpenUrl = () => {
-		Linking.openURL(save.url);
+		onOpenUrl(save.url);
 	};
 
 	return (

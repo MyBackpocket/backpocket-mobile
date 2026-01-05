@@ -1,8 +1,16 @@
-import { Check, Moon, Smartphone, Sun } from "lucide-react-native";
+import * as Haptics from "expo-haptics";
+import {
+	Check,
+	ExternalLink,
+	Moon,
+	PanelTop,
+	Smartphone,
+	Sun,
+} from "lucide-react-native";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Card } from "@/components/ui/card";
-import { radii } from "@/constants/theme";
+import { brandColors, radii } from "@/constants/theme";
 import { useThemeColors } from "@/hooks/use-theme-color";
 import { type ThemePreference, useSettings } from "@/lib/settings";
 
@@ -35,10 +43,15 @@ const THEME_OPTIONS: {
 export default function AppearanceSettingsScreen() {
 	const colors = useThemeColors();
 	const insets = useSafeAreaInsets();
-	const { settings, setTheme } = useSettings();
+	const { settings, setTheme, updateSettings } = useSettings();
 
 	const handleSelectTheme = async (theme: ThemePreference) => {
 		await setTheme(theme);
+	};
+
+	const handleToggleOpenLinksInApp = async (value: boolean) => {
+		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+		await updateSettings({ openLinksInApp: value });
 	};
 
 	return (
@@ -109,6 +122,94 @@ export default function AppearanceSettingsScreen() {
 					Choose how Backpocket appears on your device. System follows your
 					device's appearance settings.
 				</Text>
+
+				{/* Open Links Section */}
+				<Text
+					style={[
+						styles.sectionTitle,
+						{ color: colors.mutedForeground, marginTop: 24 },
+					]}
+				>
+					Open Links
+				</Text>
+				<Card style={styles.card}>
+					<TouchableOpacity
+						style={styles.linkOption}
+						onPress={() => handleToggleOpenLinksInApp(true)}
+						activeOpacity={0.7}
+					>
+						<View
+							style={[styles.iconContainer, { backgroundColor: colors.muted }]}
+						>
+							<PanelTop
+								size={20}
+								color={
+									settings.openLinksInApp
+										? brandColors.teal
+										: colors.mutedForeground
+								}
+								strokeWidth={2}
+							/>
+						</View>
+						<View style={styles.optionContent}>
+							<Text style={[styles.optionLabel, { color: colors.text }]}>
+								In-App Browser
+							</Text>
+							<Text
+								style={[
+									styles.optionDescription,
+									{ color: colors.mutedForeground },
+								]}
+							>
+								Links open in an overlay (more integrated)
+							</Text>
+						</View>
+						{settings.openLinksInApp && (
+							<Check size={22} color={colors.primary} strokeWidth={2.5} />
+						)}
+					</TouchableOpacity>
+					<View
+						style={[styles.optionDivider, { backgroundColor: colors.border }]}
+					/>
+					<TouchableOpacity
+						style={styles.linkOption}
+						onPress={() => handleToggleOpenLinksInApp(false)}
+						activeOpacity={0.7}
+					>
+						<View
+							style={[styles.iconContainer, { backgroundColor: colors.muted }]}
+						>
+							<ExternalLink
+								size={20}
+								color={
+									!settings.openLinksInApp
+										? brandColors.teal
+										: colors.mutedForeground
+								}
+								strokeWidth={2}
+							/>
+						</View>
+						<View style={styles.optionContent}>
+							<Text style={[styles.optionLabel, { color: colors.text }]}>
+								External Browser
+							</Text>
+							<Text
+								style={[
+									styles.optionDescription,
+									{ color: colors.mutedForeground },
+								]}
+							>
+								Links open in Safari or Chrome
+							</Text>
+						</View>
+						{!settings.openLinksInApp && (
+							<Check size={22} color={colors.primary} strokeWidth={2.5} />
+						)}
+					</TouchableOpacity>
+				</Card>
+				<Text style={[styles.helpText, { color: colors.mutedForeground }]}>
+					Choose how external links are opened when tapping URLs in your saves.
+				</Text>
 			</View>
 		</View>
 	);
@@ -167,5 +268,15 @@ const styles = StyleSheet.create({
 		fontFamily: "DMSans",
 		lineHeight: 20,
 		marginLeft: 4,
+	},
+	linkOption: {
+		flexDirection: "row",
+		alignItems: "center",
+		padding: 16,
+		gap: 14,
+	},
+	optionDivider: {
+		height: StyleSheet.hairlineWidth,
+		marginLeft: 70,
 	},
 });
