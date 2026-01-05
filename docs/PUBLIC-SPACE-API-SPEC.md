@@ -158,7 +158,7 @@ Update space settings including visibility and layout.
 | `avatarUrl`             | `string`                              | ❌ No    | Avatar image URL                 |
 | `visibility`            | `"public" \| "private"`               | ❌ No    | Space visibility                 |
 | `publicLayout`          | `"list" \| "grid"`                    | ❌ No    | How saves are displayed publicly |
-| `defaultSaveVisibility` | `"private" \| "public" \| "unlisted"` | ❌ No    | Default visibility for new saves |
+| `defaultSaveVisibility` | `"private" \| "public"`               | ❌ No    | Default visibility for new saves |
 
 **Response:** Returns updated space object (same as `getMySpace`).
 
@@ -449,7 +449,7 @@ Trigger verification check for a pending domain.
 ```typescript
 // Enums
 type SpaceVisibility = "public" | "private";
-type SaveVisibility = "private" | "public" | "unlisted";
+type SaveVisibility = "private" | "public";
 type PublicLayout = "list" | "grid";
 type DomainStatus =
   | "pending_verification"

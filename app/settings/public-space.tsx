@@ -20,6 +20,8 @@ import { useCallback, useEffect, useState } from "react";
 import {
 	ActivityIndicator,
 	Alert,
+	KeyboardAvoidingView,
+	Platform,
 	ScrollView,
 	StyleSheet,
 	Switch,
@@ -298,13 +300,19 @@ export default function PublicSpaceSettingsScreen() {
 	}
 
 	return (
-		<ScrollView
+		<KeyboardAvoidingView
 			style={[styles.container, { backgroundColor: colors.background }]}
-			contentContainerStyle={[
-				styles.content,
-				{ paddingBottom: insets.bottom + 24 },
-			]}
+			behavior={Platform.OS === "ios" ? "padding" : "height"}
+			keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
 		>
+			<ScrollView
+				style={styles.scrollView}
+				contentContainerStyle={[
+					styles.content,
+					{ paddingBottom: insets.bottom + 24 },
+				]}
+				keyboardShouldPersistTaps="handled"
+			>
 			{/* Public Space Toggle */}
 			<Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
 				Visibility
@@ -863,12 +871,16 @@ export default function PublicSpaceSettingsScreen() {
 					your saves with others.
 				</Text>
 			)}
-		</ScrollView>
+			</ScrollView>
+		</KeyboardAvoidingView>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
+		flex: 1,
+	},
+	scrollView: {
 		flex: 1,
 	},
 	centerContent: {

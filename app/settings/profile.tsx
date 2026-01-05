@@ -6,6 +6,8 @@ import {
 	ActivityIndicator,
 	Alert,
 	Image,
+	KeyboardAvoidingView,
+	Platform,
 	ScrollView,
 	StyleSheet,
 	Text,
@@ -71,14 +73,19 @@ export default function ProfileSettingsScreen() {
 		"?";
 
 	return (
-		<ScrollView
+		<KeyboardAvoidingView
 			style={[styles.container, { backgroundColor: colors.background }]}
-			contentContainerStyle={[
-				styles.content,
-				{ paddingBottom: insets.bottom + 16 },
-			]}
-			keyboardShouldPersistTaps="handled"
+			behavior={Platform.OS === "ios" ? "padding" : "height"}
+			keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
 		>
+			<ScrollView
+				style={styles.scrollView}
+				contentContainerStyle={[
+					styles.content,
+					{ paddingBottom: insets.bottom + 16 },
+				]}
+				keyboardShouldPersistTaps="handled"
+			>
 			{/* Profile Picture Section */}
 			<View style={styles.avatarSection}>
 				{user?.imageUrl ? (
@@ -202,12 +209,16 @@ export default function ProfileSettingsScreen() {
 					</>
 				)}
 			</Button>
-		</ScrollView>
+			</ScrollView>
+		</KeyboardAvoidingView>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
+		flex: 1,
+	},
+	scrollView: {
 		flex: 1,
 	},
 	loadingContainer: {

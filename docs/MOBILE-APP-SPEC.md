@@ -489,7 +489,7 @@ import { useApiClient } from "./client";
 
 interface ListSavesInput {
   query?: string;
-  visibility?: "private" | "public" | "unlisted";
+  visibility?: "private" | "public";
   isArchived?: boolean;
   isFavorite?: boolean;
   collectionId?: string;
@@ -638,7 +638,7 @@ export function useDeleteSave() {
 - URL input with validation
 - Auto-fetch metadata (title, description, image)
 - Custom title override
-- Visibility selector (private/public/unlisted)
+- Visibility selector (private/public)
 - Tag input with autocomplete
 - Collection selector
 - Notes field
@@ -876,7 +876,7 @@ interface DashboardData {
 // === Enums ===
 
 export type SpaceVisibility = "public" | "private";
-export type SaveVisibility = "private" | "public" | "unlisted";
+export type SaveVisibility = "private" | "public";
 export type CollectionVisibility = "private" | "public";
 export type PublicLayout = "list" | "grid";
 export type SnapshotStatus =

@@ -10,6 +10,8 @@ import { Check, ChevronLeft, Link as LinkIcon, X } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	Alert,
+	KeyboardAvoidingView,
+	Platform,
 	ScrollView,
 	StyleSheet,
 	Text,
@@ -241,11 +243,16 @@ export default function NewSaveScreen() {
 				}}
 			/>
 
-			<ScrollView
+			<KeyboardAvoidingView
 				style={[styles.container, { backgroundColor: colors.background }]}
-				contentContainerStyle={styles.content}
-				keyboardShouldPersistTaps="handled"
+				behavior={Platform.OS === "ios" ? "padding" : "height"}
+				keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
 			>
+				<ScrollView
+					style={styles.scrollView}
+					contentContainerStyle={styles.content}
+					keyboardShouldPersistTaps="handled"
+				>
 				{/* URL Input */}
 				<Card style={styles.urlCard}>
 					<CardContent style={styles.urlCardContent}>
@@ -291,7 +298,7 @@ export default function NewSaveScreen() {
 							Visibility
 						</Text>
 						<View style={styles.visibilityOptions}>
-							{(["private", "public", "unlisted"] as SaveVisibility[]).map(
+							{(["private", "public"] as SaveVisibility[]).map(
 								(v) => {
 									const isSelected = visibility === v;
 									return (
@@ -401,13 +408,17 @@ export default function NewSaveScreen() {
 						Save Link
 					</Button>
 				</View>
-			</ScrollView>
+				</ScrollView>
+			</KeyboardAvoidingView>
 		</>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
+		flex: 1,
+	},
+	scrollView: {
 		flex: 1,
 	},
 	content: {
