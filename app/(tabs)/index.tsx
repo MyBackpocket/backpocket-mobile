@@ -8,8 +8,8 @@ import {
 	ExternalLink,
 	FolderOpen,
 	Globe,
-	Heart,
 	Plus,
+	Star,
 } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
@@ -148,8 +148,8 @@ export default function DashboardScreen() {
 					<StatCard
 						title="Favorites"
 						value={isLoading ? "—" : String(stats?.favoriteSaves ?? 0)}
-						icon={Heart}
-						iconColor={brandColors.rust.DEFAULT}
+						icon={Star}
+						iconColor={brandColors.amber}
 						colors={colors}
 						onPress={() => {
 							Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

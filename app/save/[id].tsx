@@ -15,7 +15,7 @@ import {
 	Eye,
 	EyeOff,
 	FolderOpen,
-	Heart,
+	Star,
 	Tag,
 	Trash2,
 } from "lucide-react-native";
@@ -350,14 +350,12 @@ export default function SaveDetailScreen() {
 						style={[styles.quickAction, { backgroundColor: colors.card }]}
 						onPress={handleToggleFavorite}
 					>
-						<Heart
+						<Star
 							size={24}
 							color={
-								save.isFavorite
-									? brandColors.rust.DEFAULT
-									: colors.mutedForeground
+								save.isFavorite ? brandColors.amber : colors.mutedForeground
 							}
-							fill={save.isFavorite ? brandColors.rust.DEFAULT : "transparent"}
+							fill={save.isFavorite ? brandColors.amber : "transparent"}
 						/>
 						<Text style={[styles.quickActionText, { color: colors.text }]}>
 							{save.isFavorite ? "Favorited" : "Favorite"}

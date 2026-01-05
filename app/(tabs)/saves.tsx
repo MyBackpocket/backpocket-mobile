@@ -8,8 +8,8 @@ import {
 	ExternalLink,
 	Filter,
 	Globe,
-	Heart,
 	Plus,
+	Star,
 	X,
 } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
@@ -50,10 +50,10 @@ const filterLabels: Record<FilterType, string> = {
 const filterOptions: {
 	value: FilterType;
 	label: string;
-	icon: typeof Heart;
+	icon: typeof Star;
 }[] = [
 	{ value: "all", label: "All Saves", icon: Bookmark },
-	{ value: "favorites", label: "Favorites", icon: Heart },
+	{ value: "favorites", label: "Favorites", icon: Star },
 	{ value: "public", label: "Public", icon: Globe },
 ];
 
@@ -177,7 +177,7 @@ export default function SavesScreen() {
 			<View style={styles.emptyState}>
 				<View style={[styles.iconContainer, { backgroundColor: colors.muted }]}>
 					{activeFilter === "favorites" ? (
-						<Heart size={48} color={colors.mutedForeground} strokeWidth={1.5} />
+						<Star size={48} color={colors.mutedForeground} strokeWidth={1.5} />
 					) : (
 						<Bookmark
 							size={48}
@@ -554,14 +554,14 @@ function SaveCard({
 					style={styles.actionButton}
 					activeOpacity={0.7}
 				>
-					<Heart
+					<Star
 						size={20}
 						color={
 							save.isFavorite
-								? brandColors.rust.DEFAULT
+								? brandColors.amber
 								: colors.mutedForeground
 						}
-						fill={save.isFavorite ? brandColors.rust.DEFAULT : "transparent"}
+						fill={save.isFavorite ? brandColors.amber : "transparent"}
 					/>
 				</TouchableOpacity>
 

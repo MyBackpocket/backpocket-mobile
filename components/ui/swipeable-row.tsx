@@ -4,7 +4,7 @@
  */
 
 import * as Haptics from "expo-haptics";
-import { Archive, ArchiveRestore, Heart, Trash2 } from "lucide-react-native";
+import { Archive, ArchiveRestore, Star, Trash2 } from "lucide-react-native";
 import type React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -165,14 +165,14 @@ export function SwipeableRow({
 					]}
 					onPress={handleFavorite}
 				>
-					<Heart
+					<Star
 						size={20}
-						color={brandColors.rust.DEFAULT}
+						color={brandColors.amber}
 						strokeWidth={2}
-						fill={isFavorite ? brandColors.rust.DEFAULT : "transparent"}
+						fill={isFavorite ? brandColors.amber : "transparent"}
 					/>
 					<Text
-						style={[styles.actionText, { color: brandColors.rust.DEFAULT }]}
+						style={[styles.actionText, { color: brandColors.amber }]}
 					>
 						{isFavorite ? "Unfavorite" : "Favorite"}
 					</Text>
