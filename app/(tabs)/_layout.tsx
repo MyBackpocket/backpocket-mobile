@@ -5,7 +5,6 @@ import {
 	FolderOpen,
 	LayoutGrid,
 	Settings,
-	Tags,
 } from "lucide-react-native";
 import { ActivityIndicator, Platform, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -155,19 +154,6 @@ function TabsNavigator({ colors }: TabsNavigatorProps) {
 							color={focused ? colors.tint : color}
 							strokeWidth={focused ? 2.5 : 1.75}
 							fill={focused ? colors.tint : "transparent"}
-						/>
-					),
-				}}
-			/>
-			<Tabs.Screen
-				name="tags"
-				options={{
-					title: "Tags",
-					tabBarIcon: ({ color, focused }) => (
-						<Tags
-							size={22}
-							color={focused ? colors.tint : color}
-							strokeWidth={focused ? 2.5 : 1.75}
 						/>
 					),
 				}}

@@ -151,14 +151,14 @@ Update space settings including visibility and layout.
 
 **Input Schema:**
 
-| Field                   | Type                                  | Required | Description                      |
-| ----------------------- | ------------------------------------- | -------- | -------------------------------- |
-| `name`                  | `string`                              | ❌ No    | Display name for public space    |
-| `bio`                   | `string`                              | ❌ No    | Short description                |
-| `avatarUrl`             | `string`                              | ❌ No    | Avatar image URL                 |
-| `visibility`            | `"public" \| "private"`               | ❌ No    | Space visibility                 |
-| `publicLayout`          | `"list" \| "grid"`                    | ❌ No    | How saves are displayed publicly |
-| `defaultSaveVisibility` | `"private" \| "public"`               | ❌ No    | Default visibility for new saves |
+| Field                   | Type                    | Required | Description                      |
+| ----------------------- | ----------------------- | -------- | -------------------------------- |
+| `name`                  | `string`                | ❌ No    | Display name for public space    |
+| `bio`                   | `string`                | ❌ No    | Short description                |
+| `avatarUrl`             | `string`                | ❌ No    | Avatar image URL                 |
+| `visibility`            | `"public" \| "private"` | ❌ No    | Space visibility                 |
+| `publicLayout`          | `"list" \| "grid"`      | ❌ No    | How saves are displayed publicly |
+| `defaultSaveVisibility` | `"private" \| "public"` | ❌ No    | Default visibility for new saves |
 
 **Response:** Returns updated space object (same as `getMySpace`).
 

@@ -68,6 +68,7 @@ export interface Collection {
 	spaceId: string;
 	name: string;
 	visibility: CollectionVisibility;
+	defaultTags?: Tag[];
 	createdAt: string;
 	updatedAt: string;
 	_count?: {
@@ -162,12 +163,14 @@ export interface DashboardData {
 export interface CreateCollectionInput {
 	name: string;
 	visibility?: CollectionVisibility;
+	defaultTags?: string[];
 }
 
 export interface UpdateCollectionInput {
 	id: string;
 	name?: string;
 	visibility?: CollectionVisibility;
+	defaultTags?: string[];
 }
 
 export interface CreateTagInput {
@@ -267,4 +270,16 @@ export interface DuplicateSaveErrorData {
 	httpStatus: 409;
 	path: string;
 	cause: DuplicateSaveErrorCause;
+}
+
+// === Snapshot Types ===
+
+export interface GetSaveSnapshotInput {
+	saveId: string;
+	includeContent?: boolean;
+}
+
+export interface GetSaveSnapshotResponse {
+	snapshot: SaveSnapshot | null;
+	content: SnapshotContent | null;
 }

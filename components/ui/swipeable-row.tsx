@@ -6,6 +6,7 @@
 import * as Haptics from "expo-haptics";
 import { Archive, ArchiveRestore, Star, Trash2 } from "lucide-react-native";
 import type React from "react";
+import { useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -21,6 +22,8 @@ const ACTION_WIDTH = 64;
 const NUM_ACTIONS = 3;
 const TOTAL_ACTIONS_WIDTH = ACTION_WIDTH * NUM_ACTIONS;
 const SNAP_THRESHOLD = 40;
+// Minimum horizontal movement to consider it a swipe (not a tap)
+const SWIPE_MOVEMENT_THRESHOLD = 5;
 
 const TIMING_CONFIG = {
 	duration: 200,
@@ -50,7 +53,8 @@ export function SwipeableRow({
 }: SwipeableRowProps) {
 	const translateX = useSharedValue(0);
 	const isOpen = useSharedValue(false);
-	const isPanning = useSharedValue(false);
+	// Track if user has swiped (to prevent tap from firing after swipe)
+	const didSwipeRef = useRef(false);
 
 	const triggerLightHaptic = () => {
 		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -66,13 +70,8 @@ export function SwipeableRow({
 		isOpen.value = true;
 	};
 
-	const handlePress = () => {
-		if (isOpen.value) {
-			// If row is open, close it instead of navigating
-			closeRow();
-		} else {
-			onPress?.();
-		}
+	const markAsSwiped = () => {
+		didSwipeRef.current = true;
 	};
 
 	const handleDelete = () => {
@@ -94,10 +93,12 @@ export function SwipeableRow({
 		.enabled(enabled)
 		.activeOffsetX([-10, 10])
 		.failOffsetY([-10, 10])
-		.onStart(() => {
-			isPanning.value = true;
-		})
 		.onUpdate((event) => {
+			// Track if we've moved enough to consider this a swipe
+			if (Math.abs(event.translationX) > SWIPE_MOVEMENT_THRESHOLD) {
+				runOnJS(markAsSwiped)();
+			}
+
 			const startPosition = isOpen.value ? -TOTAL_ACTIONS_WIDTH : 0;
 			const newPosition = startPosition + event.translationX;
 			// Clamp between fully closed (0) and fully open (-TOTAL_ACTIONS_WIDTH)
@@ -118,7 +119,6 @@ export function SwipeableRow({
 				} else {
 					runOnJS(closeRow)();
 				}
-				isPanning.value = false;
 				return;
 			}
 
@@ -131,20 +131,7 @@ export function SwipeableRow({
 			} else {
 				runOnJS(closeRow)();
 			}
-			isPanning.value = false;
-		})
-		.onFinalize(() => {
-			isPanning.value = false;
 		});
-
-	const tapGesture = Gesture.Tap()
-		.enabled(enabled)
-		.onEnd(() => {
-			runOnJS(handlePress)();
-		});
-
-	// Compose gestures - pan takes priority, tap only fires if pan doesn't activate
-	const composedGesture = Gesture.Race(panGesture, tapGesture);
 
 	const animatedRowStyle = useAnimatedStyle(() => ({
 		transform: [{ translateX: translateX.value }],
@@ -153,6 +140,27 @@ export function SwipeableRow({
 	const animatedActionsStyle = useAnimatedStyle(() => ({
 		opacity: translateX.value < -10 ? 1 : 0,
 	}));
+
+	// Handle press on the row content (separate from swipe gesture)
+	const handleRowPress = () => {
+		// If we just finished swiping, don't trigger press
+		if (didSwipeRef.current) {
+			didSwipeRef.current = false;
+			return;
+		}
+
+		// If row is open, close it instead of navigating
+		if (isOpen.value) {
+			closeRow();
+		} else {
+			onPress?.();
+		}
+	};
+
+	// Reset swipe tracking when touch starts
+	const handlePressIn = () => {
+		didSwipeRef.current = false;
+	};
 
 	return (
 		<View style={styles.container}>
@@ -209,10 +217,17 @@ export function SwipeableRow({
 				</Pressable>
 			</Animated.View>
 
-			{/* Row Content */}
-			<GestureDetector gesture={composedGesture}>
+			{/* Row Content - Pan gesture for swipe, Pressable for tap */}
+			<GestureDetector gesture={panGesture}>
 				<Animated.View style={[styles.row, animatedRowStyle]}>
-					{children}
+					<Pressable
+						onPress={handleRowPress}
+						onPressIn={handlePressIn}
+						disabled={!enabled}
+						style={styles.pressableContent}
+					>
+						{children}
+					</Pressable>
 				</Animated.View>
 			</GestureDetector>
 		</View>
@@ -225,6 +240,9 @@ const styles = StyleSheet.create({
 	},
 	row: {
 		backgroundColor: "transparent",
+	},
+	pressableContent: {
+		flex: 1,
 	},
 	actionsContainer: {
 		position: "absolute",

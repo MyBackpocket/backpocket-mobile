@@ -33,7 +33,26 @@ export function useListCollections() {
 }
 
 /**
- * Hook to create a new collection
+ * Hook to fetch a single collection by ID
+ * Uses the list endpoint and filters client-side (API doesn't have a dedicated getCollection endpoint)
+ */
+export function useGetCollection(collectionId: string) {
+	const client = useAPIClient();
+
+	return useQuery({
+		queryKey: collectionsKeys.detail(collectionId),
+		queryFn: async () => {
+			const collections = await client.query<void, Collection[]>(
+				"space.listCollections",
+			);
+			return collections.find((c) => c.id === collectionId) ?? null;
+		},
+		enabled: !!collectionId,
+	});
+}
+
+/**
+ * Hook to create a new collection with optimistic updates
  */
 export function useCreateCollection() {
 	const client = useAPIClient();
@@ -45,7 +64,43 @@ export function useCreateCollection() {
 				"space.createCollection",
 				input,
 			),
-		onSuccess: () => {
+		onMutate: async (newCollection) => {
+			// Cancel outgoing refetches
+			await queryClient.cancelQueries({ queryKey: collectionsKeys.lists() });
+
+			// Snapshot previous value
+			const previousCollections = queryClient.getQueryData<Collection[]>(
+				collectionsKeys.list(),
+			);
+
+			// Optimistically add the new collection
+			const optimisticCollection: Collection = {
+				id: `temp-${Date.now()}`,
+				spaceId: "",
+				name: newCollection.name,
+				visibility: newCollection.visibility ?? "private",
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString(),
+				_count: { saves: 0 },
+			};
+
+			queryClient.setQueryData<Collection[]>(collectionsKeys.list(), (old) =>
+				old ? [optimisticCollection, ...old] : [optimisticCollection],
+			);
+
+			return { previousCollections };
+		},
+		onError: (_err, _newCollection, context) => {
+			// Rollback on error
+			if (context?.previousCollections) {
+				queryClient.setQueryData(
+					collectionsKeys.list(),
+					context.previousCollections,
+				);
+			}
+		},
+		onSettled: () => {
+			// Always refetch after error or success
 			queryClient.invalidateQueries({ queryKey: collectionsKeys.lists() });
 			queryClient.invalidateQueries({ queryKey: ["stats"] });
 		},
@@ -73,7 +128,7 @@ export function useUpdateCollection() {
 }
 
 /**
- * Hook to delete a collection
+ * Hook to delete a collection with optimistic updates
  */
 export function useDeleteCollection() {
 	const client = useAPIClient();
@@ -87,7 +142,32 @@ export function useDeleteCollection() {
 					collectionId,
 				},
 			),
-		onSuccess: (_, collectionId) => {
+		onMutate: async (collectionId) => {
+			// Cancel outgoing refetches
+			await queryClient.cancelQueries({ queryKey: collectionsKeys.lists() });
+
+			// Snapshot previous value
+			const previousCollections = queryClient.getQueryData<Collection[]>(
+				collectionsKeys.list(),
+			);
+
+			// Optimistically remove the collection
+			queryClient.setQueryData<Collection[]>(collectionsKeys.list(), (old) =>
+				old ? old.filter((c) => c.id !== collectionId) : [],
+			);
+
+			return { previousCollections };
+		},
+		onError: (_err, _collectionId, context) => {
+			// Rollback on error
+			if (context?.previousCollections) {
+				queryClient.setQueryData(
+					collectionsKeys.list(),
+					context.previousCollections,
+				);
+			}
+		},
+		onSettled: (_, __, collectionId) => {
 			queryClient.removeQueries({
 				queryKey: collectionsKeys.detail(collectionId),
 			});

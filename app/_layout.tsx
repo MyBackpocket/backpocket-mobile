@@ -76,6 +76,7 @@ export default function RootLayout() {
 				<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 				<Stack.Screen name="save/[id]" options={{ headerShown: true }} />
 				<Stack.Screen name="save/new" options={{ headerShown: true }} />
+				<Stack.Screen name="collection/new" options={{ headerShown: true }} />
 				<Stack.Screen name="settings" options={{ headerShown: false }} />
 				<Stack.Screen
 					name="share"

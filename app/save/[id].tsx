@@ -8,9 +8,13 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
 import {
 	Archive,
+	ArrowUp,
 	BookOpen,
 	Check,
+	ChevronDown,
 	ChevronLeft,
+	ChevronUp,
+	Clock,
 	ExternalLink,
 	Eye,
 	EyeOff,
@@ -20,9 +24,10 @@ import {
 	Star,
 	Tag,
 	Trash2,
+	User,
 	X,
 } from "lucide-react-native";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	ActivityIndicator,
 	Alert,
@@ -36,8 +41,10 @@ import {
 	Text,
 	TextInput,
 	TouchableOpacity,
+	useWindowDimensions,
 	View,
 } from "react-native";
+import RenderHtml from "react-native-render-html";
 
 const HEADER_BUTTON_SIZE = 36;
 
@@ -50,6 +57,7 @@ import { useCreateCollection, useListCollections } from "@/lib/api/collections";
 import {
 	useDeleteSave,
 	useGetSave,
+	useGetSaveSnapshot,
 	useToggleArchive,
 	useToggleFavorite,
 	useUpdateSave,
@@ -789,19 +797,47 @@ const modalStyles = StyleSheet.create({
 	},
 });
 
+// Calculate reading time from word count
+function getReadingTime(wordCount: number | null | undefined): string {
+	if (!wordCount) return "";
+	const minutes = Math.ceil(wordCount / 200); // Average reading speed
+	return `${minutes} min read`;
+}
+
 export default function SaveDetailScreen() {
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const router = useRouter();
 	const colors = useThemeColors();
 	const { openUrl } = useOpenUrl();
+	const { width } = useWindowDimensions();
 
 	const { data: save, isLoading, isError } = useGetSave(id);
+	const { data: snapshotData, isLoading: isLoadingSnapshot } =
+		useGetSaveSnapshot(id);
 	const toggleFavorite = useToggleFavorite();
 	const toggleArchive = useToggleArchive();
 	const deleteSave = useDeleteSave();
 
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+	const [isReaderModeExpanded, setIsReaderModeExpanded] = useState(true);
+	const [showScrollToTop, setShowScrollToTop] = useState(false);
+
+	const scrollViewRef = useRef<ScrollView>(null);
+
+	// Track scroll position for scroll-to-top button
+	const handleScroll = useCallback(
+		(event: { nativeEvent: { contentOffset: { y: number } } }) => {
+			const offsetY = event.nativeEvent.contentOffset.y;
+			setShowScrollToTop(offsetY > 400);
+		},
+		[],
+	);
+
+	const handleScrollToTop = useCallback(() => {
+		scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+	}, []);
 
 	const handleToggleFavorite = useCallback(async () => {
 		if (!save) return;
@@ -1058,8 +1094,11 @@ export default function SaveDetailScreen() {
 			/>
 
 			<ScrollView
+				ref={scrollViewRef}
 				style={[styles.container, { backgroundColor: colors.background }]}
 				contentContainerStyle={styles.content}
+				onScroll={handleScroll}
+				scrollEventThrottle={16}
 			>
 				{/* Image */}
 				{save.imageUrl && (
@@ -1125,6 +1164,205 @@ export default function SaveDetailScreen() {
 						</Text>
 					</TouchableOpacity>
 				</View>
+
+				{/* Reader Mode */}
+				{snapshotData?.snapshot?.status === "ready" && snapshotData.content && (
+					<Card style={styles.readerModeCard}>
+						<CardContent style={styles.readerModeCardContent}>
+							{/* Reader Mode Header */}
+							<Pressable
+								onPress={() => {
+									Haptics.selectionAsync();
+									setIsReaderModeExpanded(!isReaderModeExpanded);
+								}}
+								style={styles.readerModeHeader}
+							>
+								<View style={styles.readerModeHeaderLeft}>
+									<View
+										style={[
+											styles.readerModeIconBadge,
+											{ backgroundColor: `${brandColors.denim.DEFAULT}15` },
+										]}
+									>
+										<BookOpen size={16} color={brandColors.denim.DEFAULT} />
+									</View>
+									<Text
+										style={[styles.readerModeTitle, { color: colors.text }]}
+									>
+										Reader Mode
+									</Text>
+								</View>
+								<View style={styles.readerModeHeaderRight}>
+									{snapshotData.snapshot.wordCount && (
+										<View style={styles.readingTimeBadge}>
+											<Clock size={12} color={colors.mutedForeground} />
+											<Text
+												style={[
+													styles.readingTimeText,
+													{ color: colors.mutedForeground },
+												]}
+											>
+												{getReadingTime(snapshotData.snapshot.wordCount)}
+											</Text>
+										</View>
+									)}
+									{isReaderModeExpanded ? (
+										<ChevronUp size={20} color={colors.mutedForeground} />
+									) : (
+										<ChevronDown size={20} color={colors.mutedForeground} />
+									)}
+								</View>
+							</Pressable>
+
+							{/* Expanded Reader Content */}
+							{isReaderModeExpanded && (
+								<View style={styles.readerModeContent}>
+									{/* Byline */}
+									{snapshotData.snapshot.byline && (
+										<View style={styles.readerByline}>
+											<User
+												size={14}
+												color={colors.mutedForeground}
+												style={styles.readerBylineIcon}
+											/>
+											<Text
+												style={[
+													styles.readerBylineText,
+													{ color: colors.mutedForeground },
+												]}
+											>
+												{snapshotData.snapshot.byline}
+											</Text>
+										</View>
+									)}
+
+									{/* Divider */}
+									<View
+										style={[
+											styles.readerDivider,
+											{ backgroundColor: colors.border },
+										]}
+									/>
+
+									{/* HTML Content */}
+									<View style={styles.readerHtmlContainer}>
+										<RenderHtml
+											contentWidth={width - 64}
+											source={{ html: snapshotData.content.content }}
+											baseStyle={{
+												color: colors.text,
+												fontFamily: "DMSans",
+												fontSize: 16,
+												lineHeight: 26,
+											}}
+											tagsStyles={{
+												p: {
+													marginBottom: 16,
+													lineHeight: 26,
+												},
+												h1: {
+													fontFamily: "Fraunces-Bold",
+													fontSize: 28,
+													lineHeight: 36,
+													marginBottom: 16,
+													marginTop: 24,
+													color: colors.text,
+												},
+												h2: {
+													fontFamily: "Fraunces-Bold",
+													fontSize: 22,
+													lineHeight: 30,
+													marginBottom: 12,
+													marginTop: 20,
+													color: colors.text,
+												},
+												h3: {
+													fontFamily: "DMSans-Bold",
+													fontSize: 18,
+													lineHeight: 26,
+													marginBottom: 10,
+													marginTop: 16,
+													color: colors.text,
+												},
+												a: {
+													color: brandColors.rust.DEFAULT,
+													textDecorationLine: "underline",
+												},
+												blockquote: {
+													borderLeftWidth: 3,
+													borderLeftColor: brandColors.amber,
+													paddingLeft: 16,
+													marginLeft: 0,
+													marginVertical: 16,
+													fontStyle: "italic",
+													color: colors.mutedForeground,
+												},
+												ul: {
+													marginBottom: 16,
+													paddingLeft: 20,
+												},
+												ol: {
+													marginBottom: 16,
+													paddingLeft: 20,
+												},
+												li: {
+													marginBottom: 8,
+													lineHeight: 24,
+												},
+												code: {
+													fontFamily:
+														Platform.OS === "ios" ? "Menlo" : "monospace",
+													fontSize: 14,
+													backgroundColor: colors.muted,
+													paddingHorizontal: 4,
+													paddingVertical: 2,
+													borderRadius: 4,
+												},
+												pre: {
+													backgroundColor: colors.muted,
+													padding: 16,
+													borderRadius: 8,
+													marginVertical: 16,
+													overflow: "hidden",
+												},
+												img: {
+													borderRadius: 8,
+													marginVertical: 16,
+												},
+												strong: {
+													fontFamily: "DMSans-Bold",
+												},
+												em: {
+													fontStyle: "italic",
+												},
+											}}
+										/>
+									</View>
+								</View>
+							)}
+						</CardContent>
+					</Card>
+				)}
+
+				{/* Reader Mode Loading State */}
+				{isLoadingSnapshot && !snapshotData && (
+					<Card style={styles.readerModeCard}>
+						<CardContent style={styles.readerModeLoadingContent}>
+							<ActivityIndicator
+								size="small"
+								color={brandColors.denim.DEFAULT}
+							/>
+							<Text
+								style={[
+									styles.readerModeLoadingText,
+									{ color: colors.mutedForeground },
+								]}
+							>
+								Loading reader mode...
+							</Text>
+						</CardContent>
+					</Card>
+				)}
 
 				{/* Metadata */}
 				<Card style={styles.metadataCard}>
@@ -1300,6 +1538,23 @@ export default function SaveDetailScreen() {
 					</Button>
 				</View>
 			</ScrollView>
+
+			{/* Scroll to Top FAB */}
+			{showScrollToTop && (
+				<TouchableOpacity
+					onPress={handleScrollToTop}
+					style={[
+						styles.scrollToTopFab,
+						{
+							backgroundColor: colors.card,
+							borderColor: colors.border,
+						},
+					]}
+					activeOpacity={0.8}
+				>
+					<ArrowUp size={20} color={colors.text} />
+				</TouchableOpacity>
+			)}
 
 			{/* Edit Modal */}
 			<EditSaveModal
@@ -1514,5 +1769,113 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		fontFamily: "DMSans",
 		textAlign: "center",
+	},
+	// Reader Mode styles
+	readerModeCard: {
+		marginHorizontal: 16,
+		marginBottom: 16,
+	},
+	readerModeCardContent: {
+		padding: 0,
+	},
+	readerModeHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		paddingHorizontal: 16,
+		paddingVertical: 14,
+	},
+	readerModeHeaderLeft: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 10,
+	},
+	readerModeIconBadge: {
+		width: 32,
+		height: 32,
+		borderRadius: 8,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	readerModeTitle: {
+		fontSize: 15,
+		fontFamily: "DMSans-Bold",
+		fontWeight: "600",
+	},
+	readerModeHeaderRight: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 12,
+	},
+	readingTimeBadge: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 4,
+	},
+	readingTimeText: {
+		fontSize: 12,
+		fontFamily: "DMSans-Medium",
+	},
+	readerModeContent: {
+		paddingHorizontal: 16,
+		paddingBottom: 20,
+	},
+	readerByline: {
+		flexDirection: "row",
+		alignItems: "flex-start",
+		marginBottom: 12,
+	},
+	readerBylineIcon: {
+		marginTop: 3,
+		marginRight: 8,
+		flexShrink: 0,
+	},
+	readerBylineText: {
+		fontSize: 14,
+		fontFamily: "DMSans",
+		flex: 1,
+		lineHeight: 20,
+	},
+	readerDivider: {
+		height: StyleSheet.hairlineWidth,
+		marginBottom: 20,
+	},
+	readerHtmlContainer: {
+		// Container for the HTML content
+	},
+	readerModeLoadingContent: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 10,
+		paddingVertical: 20,
+		paddingHorizontal: 16,
+	},
+	readerModeLoadingText: {
+		fontSize: 14,
+		fontFamily: "DMSans",
+	},
+	// Scroll to Top FAB
+	scrollToTopFab: {
+		position: "absolute",
+		bottom: 24,
+		right: 20,
+		width: 44,
+		height: 44,
+		borderRadius: 22,
+		alignItems: "center",
+		justifyContent: "center",
+		borderWidth: 1,
+		...Platform.select({
+			ios: {
+				shadowColor: "#000",
+				shadowOffset: { width: 0, height: 2 },
+				shadowOpacity: 0.15,
+				shadowRadius: 8,
+			},
+			android: {
+				elevation: 4,
+			},
+		}),
 	},
 });

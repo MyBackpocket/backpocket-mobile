@@ -24,7 +24,6 @@ import {
 	Animated,
 	Image,
 	Modal,
-	Pressable,
 	RefreshControl,
 	ScrollView,
 	StyleSheet,
@@ -336,10 +335,7 @@ export default function DashboardScreen() {
 												>
 													+{spaceLinks.length - 1}
 												</Text>
-												<ChevronDown
-													size={12}
-													color={colors.mutedForeground}
-												/>
+												<ChevronDown size={12} color={colors.mutedForeground} />
 											</View>
 										)}
 									</View>
@@ -518,9 +514,17 @@ export default function DashboardScreen() {
 				onRequestClose={() => setShowLinksModal(false)}
 			>
 				<View
-					style={[styles.linksModalContainer, { backgroundColor: colors.background }]}
+					style={[
+						styles.linksModalContainer,
+						{ backgroundColor: colors.background },
+					]}
 				>
-					<View style={[styles.linksModalHeader, { borderBottomColor: colors.border }]}>
+					<View
+						style={[
+							styles.linksModalHeader,
+							{ borderBottomColor: colors.border },
+						]}
+					>
 						<View style={styles.linksModalHeaderSpacer} />
 						<Text style={[styles.linksModalTitle, { color: colors.text }]}>
 							Space Links
@@ -538,18 +542,26 @@ export default function DashboardScreen() {
 						style={styles.linksModalContent}
 						contentContainerStyle={styles.linksModalContentContainer}
 					>
-						<Text style={[styles.linksModalSubtitle, { color: colors.mutedForeground }]}>
+						<Text
+							style={[
+								styles.linksModalSubtitle,
+								{ color: colors.mutedForeground },
+							]}
+						>
 							Your public space is accessible at these URLs
 						</Text>
 
-						{spaceLinks.map((link, index) => {
+						{spaceLinks.map((link, _index) => {
 							const isCopied = copiedUrl === link.url;
 							return (
 								<View
 									key={link.hostname}
 									style={[
 										styles.linkItem,
-										{ backgroundColor: colors.card, borderColor: colors.border },
+										{
+											backgroundColor: colors.card,
+											borderColor: colors.border,
+										},
 									]}
 								>
 									<View style={styles.linkItemHeader}>
@@ -579,7 +591,10 @@ export default function DashboardScreen() {
 										)}
 									</View>
 									<Text
-										style={[styles.linkItemUrl, { color: colors.mutedForeground }]}
+										style={[
+											styles.linkItemUrl,
+											{ color: colors.mutedForeground },
+										]}
 										numberOfLines={1}
 									>
 										{link.url}
@@ -594,7 +609,11 @@ export default function DashboardScreen() {
 											activeOpacity={0.7}
 										>
 											{isCopied ? (
-												<Check size={18} color={brandColors.mint} strokeWidth={2} />
+												<Check
+													size={18}
+													color={brandColors.mint}
+													strokeWidth={2}
+												/>
 											) : (
 												<Copy size={18} color={colors.text} strokeWidth={2} />
 											)}
@@ -612,16 +631,11 @@ export default function DashboardScreen() {
 												styles.linkItemButtonFull,
 												{ backgroundColor: brandColors.teal },
 											]}
-											onPress={() => {
-												handleOpenSpaceLink(link.url);
-												setShowLinksModal(false);
-											}}
+											onPress={() => handleOpenSpaceLink(link.url)}
 											activeOpacity={0.7}
 										>
 											<ExternalLink size={18} color="#FFFFFF" strokeWidth={2} />
-											<Text style={styles.linkItemButtonTextPrimary}>
-												Open
-											</Text>
+											<Text style={styles.linkItemButtonTextPrimary}>Open</Text>
 										</TouchableOpacity>
 									</View>
 								</View>

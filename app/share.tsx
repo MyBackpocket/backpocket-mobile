@@ -29,6 +29,7 @@ import {
 	Alert,
 	Animated,
 	Easing,
+	KeyboardAvoidingView,
 	Platform,
 	Pressable,
 	ScrollView,
@@ -867,490 +868,500 @@ export default function ShareScreen() {
 			{/* Backdrop */}
 			<Pressable style={styles.backdrop} onPress={handleClose} />
 
-			{/* Card */}
-			<Animated.View
-				style={[
-					styles.card,
-					{
-						backgroundColor: colors.card,
-						borderColor: colors.border,
-						transform: [{ scale: cardScale }],
-						opacity: cardOpacity,
-					},
-					Shadows.lg,
-				]}
+			{/* KeyboardAvoidingView to push card up when keyboard appears */}
+			<KeyboardAvoidingView
+				behavior={Platform.OS === "ios" ? "padding" : "height"}
+				style={styles.keyboardAvoidingView}
 			>
-				{/* Header */}
-				<View style={styles.header}>
-					<LogoIcon size="sm" />
-					<Pressable
-						onPress={handleClose}
-						style={({ pressed }) => [
-							styles.closeButton,
-							{ opacity: pressed ? 0.6 : 1 },
-						]}
-						hitSlop={12}
-					>
-						<X size={20} color={colors.mutedForeground} />
-					</Pressable>
-				</View>
+				{/* Card */}
+				<Animated.View
+					style={[
+						styles.card,
+						{
+							backgroundColor: colors.card,
+							borderColor: colors.border,
+							transform: [{ scale: cardScale }],
+							opacity: cardOpacity,
+						},
+						Shadows.lg,
+					]}
+				>
+					{/* Header */}
+					<View style={styles.header}>
+						<LogoIcon size="sm" />
+						<Pressable
+							onPress={handleClose}
+							style={({ pressed }) => [
+								styles.closeButton,
+								{ opacity: pressed ? 0.6 : 1 },
+							]}
+							hitSlop={12}
+						>
+							<X size={20} color={colors.mutedForeground} />
+						</Pressable>
+					</View>
 
-				{/* Content */}
-				<View style={styles.content}>
-					{/* Loading State */}
-					{status === "loading" && (
-						<View style={styles.statusContainer}>
-							<View
-								style={[
-									styles.iconContainer,
-									{ backgroundColor: `${brandColors.rust.DEFAULT}15` },
-								]}
-							>
-								<Bookmark
-									size={28}
-									color={brandColors.rust.DEFAULT}
-									strokeWidth={2}
-								/>
-							</View>
-							<Text style={[styles.title, { color: colors.text }]}>
-								Getting ready...
-							</Text>
-							<PulsingDots color={brandColors.rust.DEFAULT} />
-						</View>
-					)}
-
-					{/* Saving State */}
-					{status === "saving" && (
-						<View style={styles.statusContainer}>
-							<View
-								style={[
-									styles.iconContainer,
-									{ backgroundColor: `${brandColors.rust.DEFAULT}15` },
-								]}
-							>
-								<ActivityIndicator
-									size="small"
-									color={brandColors.rust.DEFAULT}
-								/>
-							</View>
-							<Text style={[styles.title, { color: colors.text }]}>
-								Saving to Backpocket
-							</Text>
-							{domain && (
+					{/* Content */}
+					<View style={styles.content}>
+						{/* Loading State */}
+						{status === "loading" && (
+							<View style={styles.statusContainer}>
 								<View
-									style={[styles.urlPill, { backgroundColor: colors.muted }]}
-								>
-									<Globe size={14} color={colors.mutedForeground} />
-									<Text
-										style={[
-											styles.urlPillText,
-											{ color: colors.mutedForeground },
-										]}
-										numberOfLines={1}
-									>
-										{domain}
-									</Text>
-								</View>
-							)}
-							{/* Visibility indicator during save */}
-							<View style={styles.visibilityRow}>
-								<Text
 									style={[
-										styles.visibilityLabel,
-										{ color: colors.mutedForeground },
+										styles.iconContainer,
+										{ backgroundColor: `${brandColors.rust.DEFAULT}15` },
 									]}
 								>
-									Saving as:
+									<Bookmark
+										size={28}
+										color={brandColors.rust.DEFAULT}
+										strokeWidth={2}
+									/>
+								</View>
+								<Text style={[styles.title, { color: colors.text }]}>
+									Getting ready...
 								</Text>
-								<VisibilityToggle
-									visibility={visibility}
-									onToggle={handleToggleVisibility}
-									disabled
-									colors={colors}
-								/>
+								<PulsingDots color={brandColors.rust.DEFAULT} />
 							</View>
-						</View>
-					)}
+						)}
 
-					{/* Success State */}
-					{status === "success" && (
-						<View style={styles.statusContainer}>
-							<View
-								style={[
-									styles.successIconContainer,
-									{ backgroundColor: brandColors.mint },
-								]}
-							>
-								<AnimatedCheckmark color="#FFFFFF" />
-							</View>
-							<Text style={[styles.title, { color: colors.text }]}>
-								Saved to Backpocket!
-							</Text>
-							{domain && (
+						{/* Saving State */}
+						{status === "saving" && (
+							<View style={styles.statusContainer}>
 								<View
-									style={[styles.urlPill, { backgroundColor: colors.muted }]}
+									style={[
+										styles.iconContainer,
+										{ backgroundColor: `${brandColors.rust.DEFAULT}15` },
+									]}
 								>
-									<Globe size={14} color={colors.mutedForeground} />
+									<ActivityIndicator
+										size="small"
+										color={brandColors.rust.DEFAULT}
+									/>
+								</View>
+								<Text style={[styles.title, { color: colors.text }]}>
+									Saving to Backpocket
+								</Text>
+								{domain && (
+									<View
+										style={[styles.urlPill, { backgroundColor: colors.muted }]}
+									>
+										<Globe size={14} color={colors.mutedForeground} />
+										<Text
+											style={[
+												styles.urlPillText,
+												{ color: colors.mutedForeground },
+											]}
+											numberOfLines={1}
+										>
+											{domain}
+										</Text>
+									</View>
+								)}
+								{/* Visibility indicator during save */}
+								<View style={styles.visibilityRow}>
 									<Text
 										style={[
-											styles.urlPillText,
+											styles.visibilityLabel,
 											{ color: colors.mutedForeground },
 										]}
-										numberOfLines={1}
 									>
-										{domain}
+										Saving as:
 									</Text>
+									<VisibilityToggle
+										visibility={visibility}
+										onToggle={handleToggleVisibility}
+										disabled
+										colors={colors}
+									/>
 								</View>
-							)}
+							</View>
+						)}
 
-							{/* Visibility toggle */}
-							{savedItem && (
-								<VisibilityToggleSection
-									savedItem={savedItem}
-									colors={colors}
-								/>
-							)}
-
-							{/* Quick Tags */}
-							{savedItem && (
-								<QuickTagSection savedItem={savedItem} colors={colors} />
-							)}
-
-							{/* Actions */}
-							<View style={styles.actions}>
-								<Pressable
-									onPress={handleViewSave}
-									style={({ pressed }) => [
-										styles.primaryButton,
-										{ backgroundColor: colors.primary },
-										pressed && styles.buttonPressed,
+						{/* Success State */}
+						{status === "success" && (
+							<View style={styles.statusContainer}>
+								<View
+									style={[
+										styles.successIconContainer,
+										{ backgroundColor: brandColors.mint },
 									]}
 								>
-									<ExternalLink size={18} color={colors.primaryForeground} />
-									<Text
-										style={[
-											styles.primaryButtonText,
-											{ color: colors.primaryForeground },
-										]}
+									<AnimatedCheckmark color="#FFFFFF" />
+								</View>
+								<Text style={[styles.title, { color: colors.text }]}>
+									Saved to Backpocket!
+								</Text>
+								{domain && (
+									<View
+										style={[styles.urlPill, { backgroundColor: colors.muted }]}
 									>
-										View Saves
-									</Text>
-								</Pressable>
-								<Pressable
-									onPress={handleClose}
-									style={({ pressed }) => [
-										styles.secondaryButton,
-										{
-											backgroundColor: colors.secondary,
-											borderColor: colors.border,
-										},
-										pressed && styles.buttonPressed,
-									]}
-								>
-									<Text
-										style={[
-											styles.secondaryButtonText,
-											{ color: colors.secondaryForeground },
-										]}
-									>
-										Done
-									</Text>
-								</Pressable>
-							</View>
-						</View>
-					)}
-
-					{/* Duplicate State */}
-					{status === "duplicate" && duplicateSave && (
-						<View style={styles.statusContainer}>
-							<View
-								style={[
-									styles.successIconContainer,
-									{ backgroundColor: brandColors.denim.DEFAULT },
-								]}
-							>
-								<Bookmark
-									size={32}
-									color="#FFFFFF"
-									strokeWidth={2}
-									fill="#FFFFFF"
-								/>
-							</View>
-							<Text style={[styles.title, { color: colors.text }]}>
-								Already in your pocket!
-							</Text>
-							<Text
-								style={[styles.subtitle, { color: colors.mutedForeground }]}
-							>
-								{duplicateSave.id
-									? `You saved this ${formatRelativeTime(duplicateSave.savedAt)}`
-									: "This link is already in your saves"}
-							</Text>
-
-							{/* Existing save preview - only show if we have details */}
-							{(duplicateSave.title ||
-								duplicateSave.siteName ||
-								duplicateSave.url) &&
-								duplicateSave.id && (
-									<Pressable
-										onPress={handleViewExistingSave}
-										style={({ pressed }) => [
-											styles.duplicatePreview,
-											{
-												backgroundColor: colors.muted,
-												borderColor: colors.border,
-											},
-											pressed && { opacity: 0.8 },
-										]}
-									>
-										{duplicateSave.siteName && (
-											<Text
-												style={[
-													styles.duplicateSiteName,
-													{ color: colors.mutedForeground },
-												]}
-												numberOfLines={1}
-											>
-												{duplicateSave.siteName}
-											</Text>
-										)}
+										<Globe size={14} color={colors.mutedForeground} />
 										<Text
-											style={[styles.duplicateTitle, { color: colors.text }]}
-											numberOfLines={2}
+											style={[
+												styles.urlPillText,
+												{ color: colors.mutedForeground },
+											]}
+											numberOfLines={1}
 										>
-											{duplicateSave.title || extractDomain(duplicateSave.url)}
+											{domain}
 										</Text>
-									</Pressable>
+									</View>
 								)}
 
-							{/* Actions */}
-							<View style={styles.actions}>
-								{duplicateSave.id ? (
-									<>
+								{/* Visibility toggle */}
+								{savedItem && (
+									<VisibilityToggleSection
+										savedItem={savedItem}
+										colors={colors}
+									/>
+								)}
+
+								{/* Quick Tags */}
+								{savedItem && (
+									<QuickTagSection savedItem={savedItem} colors={colors} />
+								)}
+
+								{/* Actions */}
+								<View style={styles.actions}>
+									<Pressable
+										onPress={handleViewSave}
+										style={({ pressed }) => [
+											styles.primaryButton,
+											{ backgroundColor: colors.primary },
+											pressed && styles.buttonPressed,
+										]}
+									>
+										<ExternalLink size={18} color={colors.primaryForeground} />
+										<Text
+											style={[
+												styles.primaryButtonText,
+												{ color: colors.primaryForeground },
+											]}
+										>
+											View Saves
+										</Text>
+									</Pressable>
+									<Pressable
+										onPress={handleClose}
+										style={({ pressed }) => [
+											styles.secondaryButton,
+											{
+												backgroundColor: colors.secondary,
+												borderColor: colors.border,
+											},
+											pressed && styles.buttonPressed,
+										]}
+									>
+										<Text
+											style={[
+												styles.secondaryButtonText,
+												{ color: colors.secondaryForeground },
+											]}
+										>
+											Done
+										</Text>
+									</Pressable>
+								</View>
+							</View>
+						)}
+
+						{/* Duplicate State */}
+						{status === "duplicate" && duplicateSave && (
+							<View style={styles.statusContainer}>
+								<View
+									style={[
+										styles.successIconContainer,
+										{ backgroundColor: brandColors.denim.DEFAULT },
+									]}
+								>
+									<Bookmark
+										size={32}
+										color="#FFFFFF"
+										strokeWidth={2}
+										fill="#FFFFFF"
+									/>
+								</View>
+								<Text style={[styles.title, { color: colors.text }]}>
+									Already in your pocket!
+								</Text>
+								<Text
+									style={[styles.subtitle, { color: colors.mutedForeground }]}
+								>
+									{duplicateSave.id
+										? `You saved this ${formatRelativeTime(duplicateSave.savedAt)}`
+										: "This link is already in your saves"}
+								</Text>
+
+								{/* Existing save preview - only show if we have details */}
+								{(duplicateSave.title ||
+									duplicateSave.siteName ||
+									duplicateSave.url) &&
+									duplicateSave.id && (
 										<Pressable
 											onPress={handleViewExistingSave}
 											style={({ pressed }) => [
-												styles.primaryButton,
-												{ backgroundColor: colors.primary },
-												pressed && styles.buttonPressed,
-											]}
-										>
-											<ExternalLink
-												size={18}
-												color={colors.primaryForeground}
-											/>
-											<Text
-												style={[
-													styles.primaryButtonText,
-													{ color: colors.primaryForeground },
-												]}
-											>
-												View Save
-											</Text>
-										</Pressable>
-										<Pressable
-											onPress={handleEditExistingSave}
-											style={({ pressed }) => [
-												styles.secondaryButton,
+												styles.duplicatePreview,
 												{
-													backgroundColor: colors.secondary,
+													backgroundColor: colors.muted,
 													borderColor: colors.border,
 												},
-												pressed && styles.buttonPressed,
+												pressed && { opacity: 0.8 },
 											]}
 										>
-											<Pencil size={16} color={colors.secondaryForeground} />
+											{duplicateSave.siteName && (
+												<Text
+													style={[
+														styles.duplicateSiteName,
+														{ color: colors.mutedForeground },
+													]}
+													numberOfLines={1}
+												>
+													{duplicateSave.siteName}
+												</Text>
+											)}
 											<Text
-												style={[
-													styles.secondaryButtonText,
-													{ color: colors.secondaryForeground },
-												]}
+												style={[styles.duplicateTitle, { color: colors.text }]}
+												numberOfLines={2}
 											>
-												Edit Save
+												{duplicateSave.title ||
+													extractDomain(duplicateSave.url)}
 											</Text>
 										</Pressable>
-									</>
-								) : (
-									<>
-										<Pressable
-											onPress={handleViewSave}
-											style={({ pressed }) => [
-												styles.primaryButton,
-												{ backgroundColor: colors.primary },
-												pressed && styles.buttonPressed,
+									)}
+
+								{/* Actions */}
+								<View style={styles.actions}>
+									{duplicateSave.id ? (
+										<>
+											<Pressable
+												onPress={handleViewExistingSave}
+												style={({ pressed }) => [
+													styles.primaryButton,
+													{ backgroundColor: colors.primary },
+													pressed && styles.buttonPressed,
+												]}
+											>
+												<ExternalLink
+													size={18}
+													color={colors.primaryForeground}
+												/>
+												<Text
+													style={[
+														styles.primaryButtonText,
+														{ color: colors.primaryForeground },
+													]}
+												>
+													View Save
+												</Text>
+											</Pressable>
+											<Pressable
+												onPress={handleEditExistingSave}
+												style={({ pressed }) => [
+													styles.secondaryButton,
+													{
+														backgroundColor: colors.secondary,
+														borderColor: colors.border,
+													},
+													pressed && styles.buttonPressed,
+												]}
+											>
+												<Pencil size={16} color={colors.secondaryForeground} />
+												<Text
+													style={[
+														styles.secondaryButtonText,
+														{ color: colors.secondaryForeground },
+													]}
+												>
+													Edit Save
+												</Text>
+											</Pressable>
+										</>
+									) : (
+										<>
+											<Pressable
+												onPress={handleViewSave}
+												style={({ pressed }) => [
+													styles.primaryButton,
+													{ backgroundColor: colors.primary },
+													pressed && styles.buttonPressed,
+												]}
+											>
+												<ExternalLink
+													size={18}
+													color={colors.primaryForeground}
+												/>
+												<Text
+													style={[
+														styles.primaryButtonText,
+														{ color: colors.primaryForeground },
+													]}
+												>
+													View Saves
+												</Text>
+											</Pressable>
+											<Pressable
+												onPress={handleClose}
+												style={({ pressed }) => [
+													styles.secondaryButton,
+													{
+														backgroundColor: "transparent",
+														borderColor: colors.border,
+													},
+													pressed && styles.buttonPressed,
+												]}
+											>
+												<Text
+													style={[
+														styles.secondaryButtonText,
+														{ color: colors.mutedForeground },
+													]}
+												>
+													Got it
+												</Text>
+											</Pressable>
+										</>
+									)}
+								</View>
+							</View>
+						)}
+
+						{/* Error State */}
+						{status === "error" && (
+							<View style={styles.statusContainer}>
+								<View
+									style={[
+										styles.errorIconContainer,
+										{ backgroundColor: `${colors.destructive}15` },
+									]}
+								>
+									<X size={28} color={colors.destructive} strokeWidth={2.5} />
+								</View>
+								<Text style={[styles.title, { color: colors.text }]}>
+									Couldn't save
+								</Text>
+								<Text
+									style={[
+										styles.errorMessage,
+										{ color: colors.mutedForeground },
+									]}
+								>
+									{errorMessage || "Something went wrong. Please try again."}
+								</Text>
+
+								{/* Actions */}
+								<View style={styles.actions}>
+									<Pressable
+										onPress={handleRetry}
+										style={({ pressed }) => [
+											styles.primaryButton,
+											{ backgroundColor: colors.primary },
+											pressed && styles.buttonPressed,
+										]}
+									>
+										<RefreshCw size={18} color={colors.primaryForeground} />
+										<Text
+											style={[
+												styles.primaryButtonText,
+												{ color: colors.primaryForeground },
 											]}
 										>
-											<ExternalLink
-												size={18}
-												color={colors.primaryForeground}
-											/>
-											<Text
-												style={[
-													styles.primaryButtonText,
-													{ color: colors.primaryForeground },
-												]}
-											>
-												View Saves
-											</Text>
-										</Pressable>
-										<Pressable
-											onPress={handleClose}
-											style={({ pressed }) => [
-												styles.secondaryButton,
-												{
-													backgroundColor: "transparent",
-													borderColor: colors.border,
-												},
-												pressed && styles.buttonPressed,
+											Try Again
+										</Text>
+									</Pressable>
+									<Pressable
+										onPress={handleClose}
+										style={({ pressed }) => [
+											styles.secondaryButton,
+											{
+												backgroundColor: "transparent",
+												borderColor: colors.border,
+											},
+											pressed && styles.buttonPressed,
+										]}
+									>
+										<Text
+											style={[
+												styles.secondaryButtonText,
+												{ color: colors.mutedForeground },
 											]}
 										>
-											<Text
-												style={[
-													styles.secondaryButtonText,
-													{ color: colors.mutedForeground },
-												]}
-											>
-												Got it
-											</Text>
-										</Pressable>
-									</>
-								)}
+											Cancel
+										</Text>
+									</Pressable>
+								</View>
 							</View>
-						</View>
-					)}
+						)}
 
-					{/* Error State */}
-					{status === "error" && (
-						<View style={styles.statusContainer}>
-							<View
-								style={[
-									styles.errorIconContainer,
-									{ backgroundColor: `${colors.destructive}15` },
-								]}
-							>
-								<X size={28} color={colors.destructive} strokeWidth={2.5} />
-							</View>
-							<Text style={[styles.title, { color: colors.text }]}>
-								Couldn't save
-							</Text>
-							<Text
-								style={[styles.errorMessage, { color: colors.mutedForeground }]}
-							>
-								{errorMessage || "Something went wrong. Please try again."}
-							</Text>
-
-							{/* Actions */}
-							<View style={styles.actions}>
-								<Pressable
-									onPress={handleRetry}
-									style={({ pressed }) => [
-										styles.primaryButton,
-										{ backgroundColor: colors.primary },
-										pressed && styles.buttonPressed,
+						{/* Auth Required State */}
+						{status === "auth_required" && (
+							<View style={styles.statusContainer}>
+								<View
+									style={[
+										styles.iconContainer,
+										{ backgroundColor: `${brandColors.denim.DEFAULT}15` },
 									]}
 								>
-									<RefreshCw size={18} color={colors.primaryForeground} />
-									<Text
-										style={[
-											styles.primaryButtonText,
-											{ color: colors.primaryForeground },
-										]}
-									>
-										Try Again
-									</Text>
-								</Pressable>
-								<Pressable
-									onPress={handleClose}
-									style={({ pressed }) => [
-										styles.secondaryButton,
-										{
-											backgroundColor: "transparent",
-											borderColor: colors.border,
-										},
-										pressed && styles.buttonPressed,
-									]}
+									<LogIn
+										size={28}
+										color={brandColors.denim.DEFAULT}
+										strokeWidth={2}
+									/>
+								</View>
+								<Text style={[styles.title, { color: colors.text }]}>
+									Sign in to save
+								</Text>
+								<Text
+									style={[styles.subtitle, { color: colors.mutedForeground }]}
 								>
-									<Text
-										style={[
-											styles.secondaryButtonText,
-											{ color: colors.mutedForeground },
-										]}
-									>
-										Cancel
-									</Text>
-								</Pressable>
-							</View>
-						</View>
-					)}
+									Your Backpocket is just a sign-in away
+								</Text>
 
-					{/* Auth Required State */}
-					{status === "auth_required" && (
-						<View style={styles.statusContainer}>
-							<View
-								style={[
-									styles.iconContainer,
-									{ backgroundColor: `${brandColors.denim.DEFAULT}15` },
-								]}
-							>
-								<LogIn
-									size={28}
-									color={brandColors.denim.DEFAULT}
-									strokeWidth={2}
-								/>
-							</View>
-							<Text style={[styles.title, { color: colors.text }]}>
-								Sign in to save
-							</Text>
-							<Text
-								style={[styles.subtitle, { color: colors.mutedForeground }]}
-							>
-								Your Backpocket is just a sign-in away
-							</Text>
-
-							{/* Actions */}
-							<View style={styles.actions}>
-								<Pressable
-									onPress={handleSignIn}
-									style={({ pressed }) => [
-										styles.primaryButton,
-										{ backgroundColor: colors.primary },
-										pressed && styles.buttonPressed,
-									]}
-								>
-									<Text
-										style={[
-											styles.primaryButtonText,
-											{ color: colors.primaryForeground },
+								{/* Actions */}
+								<View style={styles.actions}>
+									<Pressable
+										onPress={handleSignIn}
+										style={({ pressed }) => [
+											styles.primaryButton,
+											{ backgroundColor: colors.primary },
+											pressed && styles.buttonPressed,
 										]}
 									>
-										Sign In
-									</Text>
-								</Pressable>
-								<Pressable
-									onPress={handleClose}
-									style={({ pressed }) => [
-										styles.secondaryButton,
-										{
-											backgroundColor: "transparent",
-											borderColor: colors.border,
-										},
-										pressed && styles.buttonPressed,
-									]}
-								>
-									<Text
-										style={[
-											styles.secondaryButtonText,
-											{ color: colors.mutedForeground },
+										<Text
+											style={[
+												styles.primaryButtonText,
+												{ color: colors.primaryForeground },
+											]}
+										>
+											Sign In
+										</Text>
+									</Pressable>
+									<Pressable
+										onPress={handleClose}
+										style={({ pressed }) => [
+											styles.secondaryButton,
+											{
+												backgroundColor: "transparent",
+												borderColor: colors.border,
+											},
+											pressed && styles.buttonPressed,
 										]}
 									>
-										Cancel
-									</Text>
-								</Pressable>
+										<Text
+											style={[
+												styles.secondaryButtonText,
+												{ color: colors.mutedForeground },
+											]}
+										>
+											Cancel
+										</Text>
+									</Pressable>
+								</View>
 							</View>
-						</View>
-					)}
-				</View>
-			</Animated.View>
+						)}
+					</View>
+				</Animated.View>
+			</KeyboardAvoidingView>
 		</View>
 	);
 }
@@ -1362,13 +1373,17 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		padding: 20,
 	},
+	keyboardAvoidingView: {
+		width: "100%",
+		maxWidth: 340,
+		alignItems: "center",
+	},
 	backdrop: {
 		...StyleSheet.absoluteFillObject,
 		backgroundColor: "rgba(0, 0, 0, 0.6)",
 	},
 	card: {
 		width: "100%",
-		maxWidth: 340,
 		borderRadius: radii.xl,
 		borderWidth: 1,
 		overflow: "hidden",

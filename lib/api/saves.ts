@@ -19,6 +19,8 @@ import type {
 	DashboardData,
 	DuplicateSaveErrorData,
 	DuplicateSaveInfo,
+	GetSaveSnapshotInput,
+	GetSaveSnapshotResponse,
 	ListSavesInput,
 	ListSavesResponse,
 	Save,
@@ -36,6 +38,8 @@ export const savesKeys = {
 	list: (filters: ListSavesInput) => [...savesKeys.lists(), filters] as const,
 	details: () => [...savesKeys.all, "detail"] as const,
 	detail: (id: string) => [...savesKeys.details(), id] as const,
+	snapshots: () => [...savesKeys.all, "snapshot"] as const,
+	snapshot: (id: string) => [...savesKeys.snapshots(), id] as const,
 };
 
 /**
@@ -99,6 +103,28 @@ export function useGetSave(saveId: string) {
 				Date.now() - new Date(save.createdAt).getTime() < 60000;
 			return isProcessing ? PROCESSING_POLL_INTERVAL_MS : false;
 		},
+	});
+}
+
+/**
+ * Hook to fetch snapshot (reader mode content) for a save
+ */
+export function useGetSaveSnapshot(saveId: string, includeContent = true) {
+	const client = useAPIClient();
+
+	return useQuery({
+		queryKey: savesKeys.snapshot(saveId),
+		queryFn: () =>
+			client.query<GetSaveSnapshotInput, GetSaveSnapshotResponse>(
+				"space.getSaveSnapshot",
+				{
+					saveId,
+					includeContent,
+				},
+			),
+		enabled: !!saveId,
+		// Don't refetch too aggressively - snapshots don't change often
+		staleTime: 5 * 60 * 1000, // 5 minutes
 	});
 }
 
